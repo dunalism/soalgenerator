@@ -140,7 +140,7 @@ export default function InputMateriPage() {
               </label>
               <Textarea
                 placeholder="Tempelkan bab materi, rangkuman, artikel, atau modul ajar panjang Anda di sini..."
-                className="min-h-[250px] resize-y p-4 text-base focus-visible:ring-primary leading-relaxed"
+                className="min-h-[250px] resize-y p-4   "
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
               />
