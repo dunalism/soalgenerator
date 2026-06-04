@@ -99,7 +99,7 @@ export default function InputMateriPage() {
         </div>
       </div>
 
-      <Card className="shadow-md border border-border bg-card">
+      <Card>
         <CardHeader className="space-y-1.5 pb-6">
           <CardTitle className="text-2xl font-bold tracking-tight">
             Tahap 1: Input Materi Pelajaran
