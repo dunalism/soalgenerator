@@ -5,6 +5,7 @@ import { InputStep } from "@/components/dashboard/InputStep";
 import { ConfigStep } from "@/components/dashboard/ConfigStep";
 import { ReviewStep } from "@/components/dashboard/ReviewStep";
 import { Question } from "@/components/dashboard/QuestionCard";
+import { ProgressBar } from "@/components/dashboard/ProgressBar";
 
 export default function DashboardPage() {
   const [step, setStep] = useState<"INPUT" | "CONFIG" | "REVIEW">("INPUT");
@@ -113,6 +114,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto w-full">
+      <ProgressBar currentStep={step} />
+
       {step === "INPUT" && (
         <InputStep
           inputType={inputType}
