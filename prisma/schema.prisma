@@ -1,13 +1,105 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
   provider = "mysql"
+}
+
+// 1. Model Pengguna (Sinkronisasi dengan Firebase UID)
+model User {
+  id          String       @id // Firebase UID
+  email       String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  assessments Assessment[]
+
+  @@map("users")
+}
+
+// 2. Model Asesmen (Satu generasi kumpulan soal)
+model Assessment {
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Input materi
+  inputType     InputType      // TEXT atau IMAGE
+  rawInputText  String?        @db.LongText // Teks input atau hasil OCR
+  imageUrl      String?        @db.VarChar(512) // URL gambar jika metodenya IMAGE
+  
+  // Konfigurasi Asesmen
+  questionType  AssessmentType // MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER, MIXED
+  questionCount Int
+  difficulty    Difficulty     // EASY, MEDIUM, HARD
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  questions     Question[]
+
+  @@map("assessments")
+}
+
+// Enums untuk tipe input, tipe soal, dan kesulitan
+enum InputType {
+  TEXT
+  IMAGE
+}
+
+enum AssessmentType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  MIXED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// 3. Model Soal
+model Question {
+  id           String     @id @default(uuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  
+  questionText String     @db.Text
+  type         QuestionType
+  order        Int        // Urutan soal
+  
+  // Relasi ke pilihan jawaban (untuk pilihan ganda)
+  options      Option[]
+  
+  // Kunci jawaban (terutama untuk Isian Singkat atau Benar/Salah)
+  answerKey    String     @db.Text 
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("questions")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+// 4. Model Pilihan Jawaban (Khusus Pilihan Ganda)
+model Option {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  optionText String   @db.Text
+  isCorrect  Boolean  @default(false)
+
+  @@map("options")
 }

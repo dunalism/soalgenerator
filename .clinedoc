@@ -1,0 +1,36 @@
+# Alur Kerja Utama Aplikasi
+
+## 1. Tahap Input Materi
+
+- Guru memilih metode input:
+  - Copy-paste teks panjang langsung ke text box.
+  - Mengunggah gambar/screenshot materi pelajaran.
+
+## 2. Tahap Konfigurasi
+
+- Guru memilih parameter asesmen:
+  - **Tipe Soal**: Pilihan Ganda (MULTIPLE_CHOICE), Benar/Salah (TRUE_FALSE), Isian Singkat (SHORT_ANSWER), atau Campuran (MIXED).
+  - **Jumlah Soal**: Misalnya 10, 20, atau 50 soal.
+  - **Tingkat Kesulitan**: Mudah (EASY), Sedang (MEDIUM), Sulit (HARD).
+
+## 3. Tahap Proses (Di Balik Layar)
+
+- Jika input berupa gambar, sistem melakukan OCR menggunakan **Tesseract.js** untuk mengubah gambar menjadi teks.
+- Teks materi beserta konfigurasinya dikirim ke AI menggunakan **Gemini SDK (@google/generative-ai)** dengan instruksi khusus agar mengembalikan data dalam format JSON terstruktur.
+
+## 4. Tahap Review & Edit
+
+- Hasil generate soal ditampilkan ke UI.
+- Guru bisa membaca, mengedit teks soal/jawaban, menambah, atau menghapus soal yang kurang relevan sebelum melakukan ekspor.
+
+## 5. Tahap Ekspor
+
+- Guru menyimpan asesmen dan dapat mengunduhnya dalam format:
+  - PDF
+  - Microsoft Word (.docx)
+  - Langsung dicetak (Print).
+
+## 6. Autentikasi & Database
+
+- Autentikasi menggunakan **Firebase Authentication** (UID Firebase dipetakan langsung sebagai ID Pengguna di database).
+- Database ORM menggunakan **Prisma** dengan database **MySQL**.
