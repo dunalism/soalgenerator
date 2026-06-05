@@ -28,6 +28,49 @@ export default function DashboardPage() {
   const [difficulty, setDifficulty] = useState<string>("MEDIUM");
 
   // Function to create assessment draft in database and redirect to dynamic review page
+  // Fungsi untuk kompres gambar menggunakan Canvas
+  const compressImage = (
+    file: File,
+    maxWidth = 1200,
+    quality = 0.7,
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          // Pertahankan aspect ratio, tapi batasi lebar maksimal
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Ubah menjadi Blob dengan format jpeg dan kualitas yang dikurangi (0.7)
+          canvas.toBlob(
+            (blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error("Canvas to Blob gagal"));
+            },
+            "image/jpeg",
+            quality,
+          );
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
   const handleGenerateQuestions = async () => {
     setIsGenerating(true);
     let finalInputText = rawText;
@@ -57,8 +100,29 @@ export default function DashboardPage() {
         setLoadingText("Membaca teks dari gambar menggunakan OCR...");
 
         try {
-          const Tesseract = (await import("tesseract.js")).default; // Dynamic import for optimized bundling
-          const ocrResult = await Tesseract.recognize(selectedFile, "ind+eng");
+          let fileToProcess: File | Blob = selectedFile;
+
+          // 1. Jika ukuran file lebih dari 1MB, kompres dulu di browser
+          if (selectedFile.size > 1024 * 1024) {
+            try {
+              fileToProcess = await compressImage(selectedFile, 1200, 0.7);
+              console.log(
+                "Gambar berhasil dikompres dari:",
+                selectedFile.size,
+                "ke:",
+                fileToProcess.size,
+              );
+            } catch (compressError) {
+              console.error(
+                "Gagal mengompres gambar, lanjut pakai file asli:",
+                compressError,
+              );
+            }
+          }
+
+          // 2. Jalankan Tesseract menggunakan file yang sudah ringan
+          const Tesseract = (await import("tesseract.js")).default;
+          const ocrResult = await Tesseract.recognize(fileToProcess, "ind+eng");
           finalInputText = ocrResult.data.text;
 
           if (!finalInputText || finalInputText.trim().length < 10) {
@@ -69,6 +133,10 @@ export default function DashboardPage() {
             setIsGenerating(false);
             return;
           }
+
+          // 3. SEBELUM fetch ke /api/assessments:
+          // Pastikan Anda HANYA mengirimkan `finalInputText` ke backend,
+          // BUKAN mengirimkan file asli `selectedFile` atau Base64 raksasanya ke database!
         } catch (ocrError) {
           console.error("Client OCR Error:", ocrError);
           showAlert(
@@ -92,7 +160,7 @@ export default function DashboardPage() {
           userId: currentUser.uid,
           inputType,
           rawInputText: finalInputText,
-          imageUrl: imagePreview || "",
+          imageUrl: "", // Set imageUrl to empty string causes error
           questionType,
           questionCount,
           difficulty,

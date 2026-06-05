@@ -1,9 +1,8 @@
 # Token & Cost Control Rules (limittoken.md)
 
-## 1. Absolute API Constraints (Gemini Free Tier)
+## 1. Absolute API Constraints & Model Enforcement (Gemini Free Tier)
 
-You must strictly operate within these Google AI Studio Free Tier boundaries:
-
+- **Model Enforcement:** You must strictly and exclusively use **`gemini-2.5-flash`** for all requests. Never downgrade, fall back, or change the model string to `gemini-1.5-flash` or any other deprecated versions, as they will cause `404 Not Found` API errors.
 - **Max Tokens Per Minute (TPM):** 250,000 tokens (Input + Output combined).
 - **Max Requests Per Minute (RPM):** 15 requests.
 - **Max Requests Per Day (RPD):** 1,500 requests.

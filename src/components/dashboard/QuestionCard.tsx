@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Edit, Save, Check } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Edit, Save, Check, RotateCcw } from "lucide-react";
 
 interface Option {
   id: string;
@@ -38,14 +39,29 @@ export function QuestionCard({
   const [options, setOptions] = useState<Option[]>(question.options);
   const [answerKey, setAnswerKey] = useState(question.answerKey);
 
+  // Check if there are real changes compared to original prop values
+  const hasChanges =
+    questionText !== question.questionText ||
+    answerKey !== question.answerKey ||
+    JSON.stringify(options) !== JSON.stringify(question.options);
+
   const handleSave = () => {
-    onUpdate({
-      ...question,
-      questionText,
-      options,
-      answerKey,
-    });
+    // Only call parent update (triggers API hit & success alert) if there are actual changes
+    if (hasChanges) {
+      onUpdate({
+        ...question,
+        questionText,
+        options,
+        answerKey,
+      });
+    }
     setIsEditing(false);
+  };
+
+  const handleReset = () => {
+    setQuestionText(question.questionText);
+    setOptions(question.options);
+    setAnswerKey(question.answerKey);
   };
 
   const handleOptionTextChange = (optId: string, newText: string) => {
@@ -87,20 +103,35 @@ export function QuestionCard({
         </CardTitle>
         <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
           {isEditing ? (
-            <Button
-              onClick={handleSave}
-              size="icon"
-              variant="outline"
-              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-            >
-              <Save className="h-4 w-4" />
-            </Button>
+            <>
+              {hasChanges && (
+                <Button
+                  onClick={handleReset}
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                  title="Reset Perubahan"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                onClick={handleSave}
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                title="Simpan Soal"
+              >
+                <Save className="h-4 w-4" />
+              </Button>
+            </>
           ) : (
             <Button
               onClick={() => setIsEditing(true)}
               size="icon"
               variant="outline"
               className="h-8 w-8"
+              title="Edit Soal"
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -110,6 +141,7 @@ export function QuestionCard({
             size="icon"
             variant="outline"
             className="h-8 w-8 text-destructive hover:bg-destructive/10"
+            title="Hapus Soal"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -117,12 +149,12 @@ export function QuestionCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Question Text */}
+        {/* Question Text in Textarea */}
         {isEditing ? (
-          <Input
+          <Textarea
             value={questionText}
             onChange={(e) => setQuestionText(e.target.value)}
-            className="font-medium text-base h-10 border-primary/40 focus-visible:ring-primary"
+            className="font-medium text-base min-h-[80px] border-primary/40 focus-visible:ring-primary resize-y"
           />
         ) : (
           <p className="font-medium text-foreground text-base leading-relaxed">
@@ -155,13 +187,23 @@ export function QuestionCard({
                   {opt.isCorrect && <Check className="h-3 w-3 stroke-[3px]" />}
                 </button>
                 {isEditing ? (
-                  <Input
-                    value={opt.optionText}
-                    onChange={(e) =>
-                      handleOptionTextChange(opt.id, e.target.value)
-                    }
-                    className="h-8 py-0 px-2 text-sm border-none bg-transparent focus-visible:ring-0 focus-visible:bg-background shadow-none"
-                  />
+                  opt.optionText.length > 50 ? (
+                    <Textarea
+                      value={opt.optionText}
+                      onChange={(e) =>
+                        handleOptionTextChange(opt.id, e.target.value)
+                      }
+                      className="text-sm p-1.5 min-h-[60px] border-none bg-transparent focus-visible:ring-0 focus-visible:bg-background shadow-none resize-y"
+                    />
+                  ) : (
+                    <Input
+                      value={opt.optionText}
+                      onChange={(e) =>
+                        handleOptionTextChange(opt.id, e.target.value)
+                      }
+                      className="h-8 py-0 px-2 text-sm border-none bg-transparent focus-visible:ring-0 focus-visible:bg-background shadow-none"
+                    />
+                  )
                 ) : (
                   <span className="text-sm font-medium">{opt.optionText}</span>
                 )}
@@ -210,11 +252,19 @@ export function QuestionCard({
               Kunci Jawaban Isian
             </label>
             {isEditing ? (
-              <Input
-                value={answerKey}
-                onChange={(e) => setAnswerKey(e.target.value)}
-                className="h-9 text-sm"
-              />
+              answerKey.length > 50 ? (
+                <Textarea
+                  value={answerKey}
+                  onChange={(e) => setAnswerKey(e.target.value)}
+                  className="text-sm p-2 min-h-[80px] border-primary/40 focus-visible:ring-primary resize-y animate-fade-in"
+                />
+              ) : (
+                <Input
+                  value={answerKey}
+                  onChange={(e) => setAnswerKey(e.target.value)}
+                  className="h-9 text-sm border-primary/40 focus-visible:ring-primary"
+                />
+              )
             ) : (
               <div className="bg-muted/50 border border-border rounded-lg py-2 px-3 text-sm font-semibold">
                 {question.answerKey}
