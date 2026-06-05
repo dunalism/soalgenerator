@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { signInWithPopup } from "firebase/auth";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { signInWithPopup, onAuthStateChanged } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import {
   Card,
@@ -15,12 +16,27 @@ import { Button } from "@/components/ui/button";
 import { Loader2, KeyRound } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successUser, setSuccessUser] = useState<{
     name?: string | null;
     email: string;
   } | null>(null);
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        router.push("/dashboard");
+      } else {
+        setCheckingAuth(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -51,6 +67,8 @@ export default function LoginPage() {
 
       if (!syncResponse.ok) {
         const syncData = await syncResponse.json();
+        // Rollback Firebase session since sync with DB failed
+        await auth.signOut();
         throw new Error(
           syncData.error || "Gagal melakukan sinkronisasi data ke database.",
         );
@@ -60,6 +78,9 @@ export default function LoginPage() {
         name: user.displayName,
         email: user.email,
       });
+
+      // Redirect user to dashboard
+      router.push("/dashboard");
     } catch (err: unknown) {
       console.error("Login Error:", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -70,6 +91,19 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground font-medium">
+            Memverifikasi Sesi Anda...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex items-center justify-center min-h-[80vh] px-4">
