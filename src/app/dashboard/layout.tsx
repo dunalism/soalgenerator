@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Loader2, LogOut, BookOpen } from "lucide-react";
@@ -13,6 +14,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
 
@@ -59,17 +61,44 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Dashboard Navbar */}
-      <header className="border-b border-border bg-card px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary/10 p-2 rounded-lg text-primary">
-            <BookOpen className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight">SoalGenerator</h1>
-            <p className="text-[10px] text-muted-foreground">
-              Pembuat Asesmen Pintar
-            </p>
-          </div>
+      <header className="border-b border-border bg-card px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3 sm:gap-6">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <div className="bg-primary/10 p-2 rounded-lg text-primary">
+              <BookOpen className="h-6 w-6" />
+            </div>
+            <div className="hidden xs:block">
+              <h1 className="text-lg font-bold tracking-tight">
+                SoalGenerator
+              </h1>
+              <p className="text-[10px] text-muted-foreground">
+                Pembuat Asesmen Pintar
+              </p>
+            </div>
+          </Link>
+
+          <nav className="flex items-center gap-1 border-l pl-3 sm:pl-6 h-8">
+            <Link
+              href="/dashboard"
+              className={`px-2.5 py-1 text-xs sm:text-sm font-semibold rounded-md transition-colors ${
+                pathname === "/dashboard"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Beranda
+            </Link>
+            <Link
+              href="/dashboard/bank-soal"
+              className={`px-2.5 py-1 text-xs sm:text-sm font-semibold rounded-md transition-colors ${
+                pathname === "/dashboard/bank-soal"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Bank Soal
+            </Link>
+          </nav>
         </div>
 
         <div className="flex items-center gap-4">

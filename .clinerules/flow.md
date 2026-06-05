@@ -34,3 +34,16 @@ You are an AI assistant (Cline). To prevent errors, wasted tokens, and architect
 
 - **If User Approves (e.g., "lanjut", "eksekusi", "ok"):** Execute the code strictly adhering to the approved plan in the markdown file. Do not deviate from the plan without asking first.
 - **If User Rejects or Requests Changes:** DO NOT write application code. Update the planning file based on the user's feedback, save it, and return to Stage 3 to ask for approval again.
+
+### Stage 5: VERIFICATION & MANDATORY COMMIT
+
+- Once execution is complete, you MUST verify the changes by asking the user to run a build or lint command (e.g., `npm run build` or `pnpm run build`) to ensure zero errors. Only run theese commands after a significant milestone is reached, not after every single minor file edit (i use pnpm).
+- **MANDATORY:** After successful verification, you **MUST explicitly execute the Git commit command** via the terminal.
+- Use the industry-standard **Conventional Commits** format for the message:
+  - `feat: ...` for new features.
+  - `fix: ...` for bug fixes.
+  - `docs: ...` for documentation changes.
+  - `style: ...` for formatting/styles without changing logic.
+  - `refactor: ...` for code changes that neither fix bugs nor add features.
+- Example execution: `git add . && git commit -m "feat: add user authentication layout"`
+- Notify the user once the commit is successfully executed.
