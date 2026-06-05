@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
 import { InputStep } from "@/components/dashboard/InputStep";
 import { ConfigStep } from "@/components/dashboard/ConfigStep";
-import { ReviewStep } from "@/components/dashboard/ReviewStep";
-import { Question } from "@/components/dashboard/QuestionCard";
 import { ProgressBar } from "@/components/dashboard/ProgressBar";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
-  const [step, setStep] = useState<"INPUT" | "CONFIG" | "REVIEW">("INPUT");
+  const router = useRouter();
+  const [step, setStep] = useState<"INPUT" | "CONFIG">("INPUT");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // State Step 1: Input Materi
   const [inputType, setInputType] = useState<"TEXT" | "IMAGE">("TEXT");
@@ -21,96 +24,67 @@ export default function DashboardPage() {
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>("MEDIUM");
 
-  // State Step 3: Hasil Soal
-  const [questions, setQuestions] = useState<Question[]>([]);
+  // Function to create assessment draft in database and redirect to dynamic review page
+  const handleGenerateQuestions = async () => {
+    setIsGenerating(true);
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        alert("Sesi Anda telah habis. Silakan login kembali.");
+        router.push("/login");
+        return;
+      }
 
-  // Function to compile realistic dummy data based on user configuration
-  const handleGenerateQuestions = () => {
-    // Generate mock questions list depending on questionType selected
-    const dummyQuestions: Question[] = [];
+      // 1. Call POST /api/assessments to save/generate in MySQL
+      const response = await fetch("/api/assessments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: currentUser.uid,
+          inputType,
+          rawInputText:
+            inputType === "TEXT" ? rawText : selectedFile?.name || "",
+          imageUrl: imagePreview || "",
+          questionType,
+          questionCount,
+          difficulty,
+        }),
+      });
 
-    if (questionType === "MULTIPLE_CHOICE" || questionType === "MIXED") {
-      dummyQuestions.push(
-        {
-          id: "q1",
-          questionText:
-            "Planet manakah di tata surya kita yang dijuluki sebagai 'Planet Merah'?",
-          type: "MULTIPLE_CHOICE",
-          options: [
-            { id: "q1-o1", optionText: "Venus", isCorrect: false },
-            { id: "q1-o2", optionText: "Mars", isCorrect: true },
-            { id: "q1-o3", optionText: "Merkurius", isCorrect: false },
-            { id: "q1-o4", optionText: "Jupiter", isCorrect: false },
-          ],
-          answerKey: "Mars",
-        },
-        {
-          id: "q2",
-          questionText:
-            "Lapisan atmosfer bumi manakah yang berfungsi melindungi bumi dari radiasi ultraviolet berbahaya?",
-          type: "MULTIPLE_CHOICE",
-          options: [
-            { id: "q2-o1", optionText: "Mesosfer", isCorrect: false },
-            {
-              id: "q2-o2",
-              optionText: "Stratosfer (Lapisan Ozon)",
-              isCorrect: true,
-            },
-            { id: "q2-o3", optionText: "Troposfer", isCorrect: false },
-            { id: "q2-o4", optionText: "Termosfer", isCorrect: false },
-          ],
-          answerKey: "Stratosfer (Lapisan Ozon)",
-        },
-      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal membuat asesmen.");
+      }
+
+      // 2. Redirect Guru to the persistent Review subroute
+      router.push(`/dashboard/assessment/${data.id}`);
+    } catch (error: unknown) {
+      console.error("Generate error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(errorMessage || "Terjadi kesalahan saat memproses materi.");
+    } finally {
+      setIsGenerating(false);
     }
-
-    if (questionType === "TRUE_FALSE" || questionType === "MIXED") {
-      dummyQuestions.push(
-        {
-          id: "q3",
-          questionText:
-            "Matahari merupakan sebuah bintang raksasa yang menghasilkan energinya melalui reaksi fusi nuklir.",
-          type: "TRUE_FALSE",
-          options: [],
-          answerKey: "Benar",
-        },
-        {
-          id: "q4",
-          questionText:
-            "Planet Jupiter memiliki permukaan padat yang mirip dengan permukaan Bumi.",
-          type: "TRUE_FALSE",
-          options: [],
-          answerKey: "Salah",
-        },
-      );
-    }
-
-    if (questionType === "SHORT_ANSWER" || questionType === "MIXED") {
-      dummyQuestions.push(
-        {
-          id: "q5",
-          questionText:
-            "Sebutkan satelit alami terbesar yang mengitari planet Bumi kita!",
-          type: "SHORT_ANSWER",
-          options: [],
-          answerKey: "Bulan",
-        },
-        {
-          id: "q6",
-          questionText:
-            "Apa nama galaksi spiral raksasa yang menjadi rumah bagi tata surya kita?",
-          type: "SHORT_ANSWER",
-          options: [],
-          answerKey: "Bima Sakti (Milky Way)",
-        },
-      );
-    }
-
-    // Adjust questionCount dynamically
-    const slicedQuestions = dummyQuestions.slice(0, questionCount);
-    setQuestions(slicedQuestions);
-    setStep("REVIEW");
   };
+
+  if (isGenerating) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="text-center space-y-1">
+          <p className="font-bold text-lg">Menyusun Soal dengan AI...</p>
+          <p className="text-sm text-muted-foreground">
+            Sistem sedang membaca materi Anda dan merumuskan soal kustom di
+            database MySQL.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto w-full">
@@ -140,17 +114,6 @@ export default function DashboardPage() {
           setDifficulty={setDifficulty}
           onBack={() => setStep("INPUT")}
           onGenerate={handleGenerateQuestions}
-        />
-      )}
-
-      {step === "REVIEW" && (
-        <ReviewStep
-          questions={questions}
-          setQuestions={setQuestions}
-          inputType={inputType}
-          questionType={questionType}
-          difficulty={difficulty}
-          onBack={() => setStep("CONFIG")}
         />
       )}
     </div>

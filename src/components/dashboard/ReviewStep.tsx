@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Question, QuestionCard } from "./QuestionCard";
 import {
   ArrowLeft,
-  Printer,
+  Save,
   FileText,
   Download,
   PlusCircle,
@@ -26,6 +26,8 @@ interface ReviewStepProps {
   inputType: "TEXT" | "IMAGE";
   questionType: string;
   difficulty: string;
+  onSaveToBankSoal: () => void;
+  isSaving: boolean;
 }
 
 export function ReviewStep({
@@ -35,6 +37,8 @@ export function ReviewStep({
   inputType,
   questionType,
   difficulty,
+  onSaveToBankSoal,
+  isSaving,
 }: ReviewStepProps) {
   const handleUpdateQuestion = (updatedQuestion: Question) => {
     setQuestions((prev) =>
@@ -155,12 +159,13 @@ export function ReviewStep({
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <Button
-              onClick={() => handleExport("PRINT")}
+              onClick={onSaveToBankSoal}
+              disabled={isSaving}
               variant="outline"
-              className="w-full sm:w-auto h-11 px-5 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto h-11 px-5 flex items-center justify-center gap-2 border-primary/45 text-primary hover:bg-primary/5"
             >
-              <Printer className="h-4 w-4 text-muted-foreground" />
-              <span>Cetak Soal</span>
+              <Save className="h-4 w-4" />
+              <span>{isSaving ? "Menyimpan..." : "Simpan ke Bank Soal"}</span>
             </Button>
             <Button
               onClick={() => handleExport("WORD")}

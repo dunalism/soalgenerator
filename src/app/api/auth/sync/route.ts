@@ -1,19 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import "dotenv/config";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const adapter = new PrismaMariaDb({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT as unknown as number,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-
-  allowPublicKeyRetrieval: true,
-});
 
 export async function POST(request: Request) {
   try {
@@ -25,11 +14,6 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-
-    const { PrismaClient } = await import("@prisma/client");
-    const prisma = new PrismaClient({
-      adapter,
-    });
 
     // Upsert user in MySQL using Prisma
     const user = await prisma.user.upsert({
