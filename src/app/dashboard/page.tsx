@@ -7,9 +7,11 @@ import { InputStep } from "@/components/dashboard/InputStep";
 import { ConfigStep } from "@/components/dashboard/ConfigStep";
 import { ProgressBar } from "@/components/dashboard/ProgressBar";
 import { Loader2 } from "lucide-react";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { showAlert } = useDialog();
   const [step, setStep] = useState<"INPUT" | "CONFIG">("INPUT");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -30,7 +32,10 @@ export default function DashboardPage() {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        alert("Sesi Anda telah habis. Silakan login kembali.");
+        showAlert(
+          "Sesi Habis",
+          "Sesi Anda telah habis. Silakan login kembali.",
+        );
         router.push("/login");
         return;
       }
@@ -65,7 +70,10 @@ export default function DashboardPage() {
       console.error("Generate error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      alert(errorMessage || "Terjadi kesalahan saat memproses materi.");
+      showAlert(
+        "Gagal Membuat Soal",
+        errorMessage || "Terjadi kesalahan saat memproses materi.",
+      );
     } finally {
       setIsGenerating(false);
     }

@@ -5,10 +5,12 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { QuestionCard, Question } from "@/components/dashboard/QuestionCard";
 import { Loader2, BookOpen, AlertCircle } from "lucide-react";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 export default function BankSoalPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const { showAlert, showConfirm } = useDialog();
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [page, setPage] = useState(1);
@@ -110,39 +112,47 @@ export default function BankSoalPage() {
         setQuestions((prev) =>
           prev.map((q) => (q.id === updatedQuestion.id ? updatedQuestion : q)),
         );
+        showAlert("Sukses", "Soal berhasil diperbarui di database!");
       } else {
         const data = await response.json();
-        alert(data.error || "Gagal memperbarui soal.");
+        showAlert("Gagal", data.error || "Gagal memperbarui soal.");
       }
     } catch (error) {
       console.error("Update error:", error);
-      alert("Terjadi kesalahan koneksi saat memperbarui soal.");
+      showAlert(
+        "Error Koneksi",
+        "Terjadi kesalahan koneksi saat memperbarui soal.",
+      );
     }
   };
 
   // Delete question handler
   const handleDeleteQuestion = async (id: string) => {
-    if (
-      !confirm("Apakah Anda yakin ingin menghapus soal ini dari Bank Soal?")
-    ) {
-      return;
-    }
+    showConfirm(
+      "Hapus Soal",
+      "Apakah Anda yakin ingin menghapus soal ini dari Bank Soal? Tindakan ini tidak dapat dibatalkan.",
+      async () => {
+        try {
+          const response = await fetch(`/api/bank-soal?id=${id}`, {
+            method: "DELETE",
+          });
 
-    try {
-      const response = await fetch(`/api/bank-soal?id=${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        setQuestions((prev) => prev.filter((q) => q.id !== id));
-      } else {
-        const data = await response.json();
-        alert(data.error || "Gagal menghapus soal.");
-      }
-    } catch (error) {
-      console.error("Delete error:", error);
-      alert("Terjadi kesalahan koneksi saat menghapus soal.");
-    }
+          if (response.ok) {
+            setQuestions((prev) => prev.filter((q) => q.id !== id));
+            showAlert("Sukses", "Soal berhasil dihapus dari Bank Soal!");
+          } else {
+            const data = await response.json();
+            showAlert("Gagal", data.error || "Gagal menghapus soal.");
+          }
+        } catch (error) {
+          console.error("Delete error:", error);
+          showAlert(
+            "Error Koneksi",
+            "Terjadi kesalahan koneksi saat menghapus soal.",
+          );
+        }
+      },
+    );
   };
 
   if (authLoading || loading) {

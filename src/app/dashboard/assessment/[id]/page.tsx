@@ -6,6 +6,7 @@ import { ReviewStep } from "@/components/dashboard/ReviewStep";
 import { ProgressBar } from "@/components/dashboard/ProgressBar";
 import { Question } from "@/components/dashboard/QuestionCard";
 import { Loader2 } from "lucide-react";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 interface DBQuestion {
   id: string;
@@ -32,6 +33,7 @@ interface AssessmentPageProps {
 export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
   const router = useRouter();
   const { id } = use(params);
+  const { showAlert } = useDialog();
 
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -74,7 +76,10 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
       } catch (error) {
         const err = error as Error;
         console.error("Fetch error:", err);
-        alert(err.message || "Terjadi kesalahan saat memuat data.");
+        showAlert(
+          "Gagal Memuat",
+          err.message || "Terjadi kesalahan saat memuat data.",
+        );
         router.push("/dashboard");
       } finally {
         setLoading(false);
@@ -82,7 +87,7 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
     };
 
     fetchAssessment();
-  }, [id, router]);
+  }, [id, router, showAlert]);
 
   // Handle saving the updated questions list to the database (MySQL)
   const handleSaveToBankSoal = async () => {
@@ -105,11 +110,14 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
       }
 
       setInitialQuestions(JSON.parse(JSON.stringify(questions))); // Reset state perubahan
-      alert("Perubahan berhasil disimpan ke Bank Soal database MySQL!");
+      showAlert(
+        "Sukses",
+        "Perubahan berhasil disimpan ke Bank Soal database MySQL!",
+      );
     } catch (error) {
       const err = error as Error;
       console.error("Save error:", err);
-      alert(err.message || "Gagal menyimpan perubahan.");
+      showAlert("Gagal Menyimpan", err.message || "Gagal menyimpan perubahan.");
     } finally {
       setIsSaving(false);
     }

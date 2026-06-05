@@ -18,6 +18,7 @@ import {
   PlusCircle,
   Sparkles,
 } from "lucide-react";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 interface ReviewStepProps {
   questions: Question[];
@@ -42,6 +43,8 @@ export function ReviewStep({
   isSaving,
   hasChanges,
 }: ReviewStepProps) {
+  const { showAlert } = useDialog();
+
   const handleUpdateQuestion = (updatedQuestion: Question) => {
     setQuestions((prev) =>
       prev.map((q) => (q.id === updatedQuestion.id ? updatedQuestion : q)),
@@ -82,7 +85,10 @@ export function ReviewStep({
   };
 
   const handleExport = (format: "PDF" | "WORD" | "PRINT") => {
-    alert(`Asesmen berhasil diekspor ke format: ${format}!`);
+    showAlert(
+      "Ekspor Berhasil",
+      `Asesmen berhasil diekspor ke format: ${format}!`,
+    );
   };
 
   return (

@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Clipboard,
 } from "lucide-react";
+import { useDialog } from "@/components/ui/dialog-provider";
 
 interface InputStepProps {
   inputType: "TEXT" | "IMAGE";
@@ -44,6 +45,7 @@ export function InputStep({
   onNext,
 }: InputStepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showAlert } = useDialog();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -68,11 +70,17 @@ export function InputStep({
 
   const handleContinue = () => {
     if (inputType === "TEXT" && !rawText.trim()) {
-      alert("Silakan masukkan teks materi pelajaran terlebih dahulu.");
+      showAlert(
+        "Materi Kosong",
+        "Silakan masukkan teks materi pelajaran terlebih dahulu.",
+      );
       return;
     }
     if (inputType === "IMAGE" && !selectedFile) {
-      alert("Silakan unggah gambar materi pelajaran terlebih dahulu.");
+      showAlert(
+        "Gambar Kosong",
+        "Silakan unggah gambar materi pelajaran terlebih dahulu.",
+      );
       return;
     }
     onNext();
