@@ -5,6 +5,67 @@ import { GoogleGenerativeAI, SchemaType, Schema } from "@google/generative-ai";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// GET - Ambil daftar Paket Soal (Assessments) ter-paginasi milik user tertentu
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized. Missing userId." },
+        { status: 400 },
+      );
+    }
+
+    const page = Number(searchParams.get("page") || "1");
+    const limit = Number(searchParams.get("limit") || "6");
+    const skip = (page - 1) * limit;
+
+    const assessments = await prisma.assessment.findMany({
+      where: {
+        userId: userId,
+      },
+      include: {
+        _count: {
+          select: {
+            questions: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: limit,
+      skip: skip,
+    });
+
+    const totalCount = await prisma.assessment.count({
+      where: {
+        userId: userId,
+      },
+    });
+
+    const hasMore = skip + assessments.length < totalCount;
+
+    return NextResponse.json({
+      success: true,
+      assessments,
+      totalCount,
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
+    });
+  } catch (error: unknown) {
+    console.error("Fetch assessments error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Internal Server Error", message: errorMessage },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
