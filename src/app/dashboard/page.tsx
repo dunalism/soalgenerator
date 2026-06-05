@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const { showAlert } = useDialog();
   const [step, setStep] = useState<"INPUT" | "CONFIG">("INPUT");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingText, setLoadingText] = useState("Menyusun Soal dengan AI...");
 
   // State Step 1: Input Materi
   const [inputType, setInputType] = useState<"TEXT" | "IMAGE">("TEXT");
@@ -29,6 +30,8 @@ export default function DashboardPage() {
   // Function to create assessment draft in database and redirect to dynamic review page
   const handleGenerateQuestions = async () => {
     setIsGenerating(true);
+    let finalInputText = rawText;
+
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
@@ -40,6 +43,45 @@ export default function DashboardPage() {
         return;
       }
 
+      // If image input, run Tesseract OCR client-side first!
+      if (inputType === "IMAGE") {
+        if (!selectedFile) {
+          showAlert(
+            "Gambar Kosong",
+            "Silakan unggah gambar materi pelajaran terlebih dahulu.",
+          );
+          setIsGenerating(false);
+          return;
+        }
+
+        setLoadingText("Membaca teks dari gambar menggunakan OCR...");
+
+        try {
+          const Tesseract = (await import("tesseract.js")).default; // Dynamic import for optimized bundling
+          const ocrResult = await Tesseract.recognize(selectedFile, "ind+eng");
+          finalInputText = ocrResult.data.text;
+
+          if (!finalInputText || finalInputText.trim().length < 10) {
+            showAlert(
+              "Gagal Membaca",
+              "Gagal mendeteksi teks dari gambar materi pelajaran. Silakan unggah gambar materi pelajaran dengan tulisan yang lebih jelas.",
+            );
+            setIsGenerating(false);
+            return;
+          }
+        } catch (ocrError) {
+          console.error("Client OCR Error:", ocrError);
+          showAlert(
+            "Gagal Membaca Gambar",
+            "Terjadi kesalahan saat memproses gambar menggunakan OCR. Silakan coba lagi atau gunakan metode Salin & Tempel Teks.",
+          );
+          setIsGenerating(false);
+          return;
+        }
+      }
+
+      setLoadingText("Menyusun Soal kustom dengan AI...");
+
       // 1. Call POST /api/assessments to save/generate in MySQL
       const response = await fetch("/api/assessments", {
         method: "POST",
@@ -49,8 +91,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           userId: currentUser.uid,
           inputType,
-          rawInputText:
-            inputType === "TEXT" ? rawText : selectedFile?.name || "",
+          rawInputText: finalInputText,
           imageUrl: imagePreview || "",
           questionType,
           questionCount,
@@ -84,9 +125,9 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <div className="text-center space-y-1">
-          <p className="font-bold text-lg">Menyusun Soal dengan AI...</p>
+          <p className="font-bold text-lg">{loadingText}</p>
           <p className="text-sm text-muted-foreground">
-            Sistem sedang membaca materi Anda dan merumuskan soal kustom di
+            Sistem sedang bekerja memproses materi dan merumuskan soal kustom di
             database MySQL.
           </p>
         </div>

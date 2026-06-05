@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenerativeAI, SchemaType, Schema } from "@google/generative-ai";
-import Tesseract from "tesseract.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +25,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!rawInputText || rawInputText.trim().length < 10) {
+      return NextResponse.json(
+        { error: "Materi input terlalu pendek untuk dianalisis oleh AI." },
+        { status: 400 },
+      );
+    }
+
     // Check for Gemini API Key
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -38,64 +44,12 @@ export async function POST(request: Request) {
       );
     }
 
-    let finalInputText = rawInputText || "";
-
-    // 1. If input type is IMAGE, perform OCR with Tesseract.js
-    if (inputType === "IMAGE") {
-      if (!imageUrl) {
-        return NextResponse.json(
-          { error: "Gambar materi pelajaran belum diunggah." },
-          { status: 400 },
-        );
-      }
-
-      try {
-        // Extract base64 image data and convert to buffer
-        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
-        const imageBuffer = Buffer.from(base64Data, "base64");
-
-        // Run Tesseract OCR in Indonesian + English
-        const ocrResult = await Tesseract.recognize(imageBuffer, "ind+eng");
-        finalInputText = ocrResult.data.text;
-
-        if (!finalInputText || finalInputText.trim().length < 10) {
-          return NextResponse.json(
-            {
-              error:
-                "Gagal mendeteksi teks dari gambar materi pelajaran. Silakan unggah gambar materi pelajaran dengan tulisan yang lebih jelas.",
-            },
-            { status: 400 },
-          );
-        }
-      } catch (ocrError: unknown) {
-        console.error("Tesseract OCR Error:", ocrError);
-        const errorMessage =
-          ocrError instanceof Error ? ocrError.message : "Unknown error";
-        return NextResponse.json(
-          {
-            error:
-              "Terjadi kesalahan saat mengekstrak teks dari gambar menggunakan OCR.",
-            details: errorMessage,
-          },
-          { status: 500 },
-        );
-      }
-    } else {
-      // Input type is TEXT
-      if (!finalInputText || finalInputText.trim().length < 10) {
-        return NextResponse.json(
-          { error: "Materi input terlalu pendek untuk dianalisis oleh AI." },
-          { status: 400 },
-        );
-      }
-    }
-
-    // 2. Create the Assessment record in MySQL (Save the final OCR or text)
+    // 1. Create the Assessment record in MySQL (Saves the material text directly)
     const assessment = await prisma.assessment.create({
       data: {
         userId,
         inputType: inputType === "IMAGE" ? "IMAGE" : "TEXT",
-        rawInputText: finalInputText,
+        rawInputText: rawInputText,
         imageUrl: inputType === "IMAGE" ? imageUrl : "",
         questionType: questionType || "MULTIPLE_CHOICE",
         questionCount: Number(questionCount) || 10,
@@ -103,7 +57,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // 3. Call Gemini AI to generate structured questions
+    // 2. Call Gemini AI to generate structured questions
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const responseSchema: Schema = {
@@ -170,7 +124,7 @@ Aturan Pembuatan Soal:
 
     const result = await model.generateContent({
       contents: [
-        { role: "user", parts: [{ text: `Materi:\n${finalInputText}` }] },
+        { role: "user", parts: [{ text: `Materi:\n${rawInputText}` }] },
       ],
       systemInstruction: systemPrompt,
     });
@@ -183,7 +137,7 @@ Aturan Pembuatan Soal:
     const parsedData = JSON.parse(responseText);
     const questionsList = parsedData.questions || [];
 
-    // 4. Create all questions in the database
+    // 3. Create all questions in the database
     for (let i = 0; i < questionsList.length; i++) {
       const q = questionsList[i];
       await prisma.question.create({
