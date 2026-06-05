@@ -13,6 +13,7 @@ const adapter = new PrismaMariaDb({
   port: process.env.DB_PORT as unknown as number,
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
+  connectionLimit: 4, // Mencegah error max_user_connections melebihi limit server (5)
 
   allowPublicKeyRetrieval: true,
 });

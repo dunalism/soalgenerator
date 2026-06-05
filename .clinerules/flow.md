@@ -17,12 +17,11 @@ You are an AI assistant (Cline). To prevent errors, wasted tokens, and architect
 - **Directory:** Save the file inside the `planning/` directory at the root of the workspace. (Create the directory if it does not exist).
 - **Naming Convention:** Name the file based on the specific feature or task, using kebab-case (e.g., `planning/google-auth-integration.md`, `planning/ui-assessment-card.md`).
 - **Required Content in the Planning File:**
-  1. **Objective:** A concise summary of the task.
+  1. **Objective:** A concise summary of the task. All planning explanation in Indonesian.
   2. **Affected Files:** A checklist of exact file paths that will be created or modified.
   3. **Implementation Steps:** Step-by-step logic, including components, API routes, SQL/Prisma operations, and UI/UX flow.
   4. **Dependencies:** Any new packages that need to be installed.
   5. **Edge Cases/Error Handling:** How you plan to handle potential failures (e.g., empty inputs, API timeouts).
-  6. **Explain in Indonesian**
 
 ### Stage 3: USER REVIEW (PAUSE POINT)
 
@@ -35,7 +34,3 @@ You are an AI assistant (Cline). To prevent errors, wasted tokens, and architect
 
 - **If User Approves (e.g., "lanjut", "eksekusi", "ok"):** Execute the code strictly adhering to the approved plan in the markdown file. Do not deviate from the plan without asking first.
 - **If User Rejects or Requests Changes:** DO NOT write application code. Update the planning file based on the user's feedback, save it, and return to Stage 3 to ask for approval again.
-
-### Stage 4: COMMIT
-
-If everything is OK without errors, commit using the industry standard commit message.

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,9 +11,6 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-
-    const { PrismaClient } = await import("@prisma/client");
-    const prisma = new PrismaClient({});
 
     const assessment = await prisma.assessment.findUnique({
       where: { id },
@@ -54,9 +52,6 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     const { questions } = body; // Array of edited Question objects
-
-    const { PrismaClient } = await import("@prisma/client");
-    const prisma = new PrismaClient({});
 
     // Verify assessment exists
     const assessmentExists = await prisma.assessment.findUnique({

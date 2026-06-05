@@ -1,50 +1,58 @@
-# Rencana Implementasi Persistensi Database (Solusi B) & Pembaruan Tombol Ekspor
+# Planning - Implementasi Persistensi Database & Pembaruan Tombol Ekspor
 
-## 1. Arsitektur Relasional Database (Prisma MySQL)
+## 1. Objective (Tujuan)
 
-Kita akan memanfaatkan tabel yang sudah didefinisikan sebelumnya di `prisma/schema.prisma`:
-
-- **`Assessment`**: Menyimpan materi input, tipe input, tipe soal, jumlah soal, dan tingkat kesulitan.
-- **`Question`**: Menyimpan detail soal (teks soal, tipe, order, kunci jawaban).
-- **`Option`**: Menyimpan pilihan jawaban jika bertipe pilihan ganda.
+Mengimplementasikan penyimpanan dan pengambilan data asesmen dari database MySQL menggunakan Prisma ORM. Flow ini memindahkan state asesmen dari yang sebelumnya sementara di client-side ke database MySQL persisten (Solusi B). Selain itu, kami akan memperbarui tombol ekspor pada komponen `ReviewStep` untuk menghapus opsi cetak dan hanya menyisakan Unduh PDF, Unduh Word, dan Simpan ke Bank Soal.
 
 ---
 
-## 2. Rencana Pembuatan API Endpoints
+## 2. Affected Files (File yang Terpengaruh)
 
-### A. API Simpan / Generate Asesmen (`/api/assessments/route.ts`)
+- [x] `src/app/api/assessments/route.ts` (Refaktor instansiasi Prisma agar menggunakan Singleton instance dan optimalkan POST handler)
+- [x] `src/app/api/assessments/[id]/route.ts` (Refaktor instansiasi Prisma ke Singleton instance, implementasikan GET dan PUT handler untuk persistence kustom)
+- [x] `src/components/dashboard/ReviewStep.tsx` (Perbarui tombol aksi: Hapus opsi "Cetak Soal", gunakan hanya Unduh PDF, Unduh Word, dan Simpan ke Bank Soal)
 
-- Menerima input dari Tahap 2 (materi input, konfigurasi, dll).
-- Membuat record `Assessment` baru di MySQL.
-- Menghasilkan soal dummy (atau nantinya hasil dari AI) dan menyimpannya langsung ke tabel `Question` dan `Option` di database.
-- Mengembalikan `id` dari Asesmen yang sukses dibuat.
-
-### B. API Ambil & Simpan Perubahan Asesmen (`/api/assessments/[id]/route.ts`)
-
-- **GET**: Membaca data `Assessment` beserta relasi `questions` dan `options` dari MySQL berdasarkan ID asesmen untuk dirender di halaman Review.
-- **PUT**: Menyimpan pengeditan soal kustom (update/delete/add) dari halaman Review ke database MySQL (Aksi "Simpan ke Bank Soal").
+_Catatan: File `src/app/dashboard/page.tsx` dan `src/app/dashboard/assessment/[id]/page.tsx` sudah terimplementasi dengan baik dan merujuk ke API dengan benar, namun akan divalidasi keaktifannya._
 
 ---
 
-## 3. Struktur Routing Baru di Next.js App Router
+## 3. Implementation Steps (Langkah-Langkah Implementasi)
 
-1. **Dashboard Utama (`/dashboard/page.tsx`)**:
-   - Hanya mengurusi **Tahap 1 (Input Materi)** dan **Tahap 2 (Konfigurasi)**.
-   - Saat tombol "Buat Soal Sekarang" diklik, dashboard memanggil API POST `/api/assessments` dan mengarahkan pengguna ke `/dashboard/assessment/[id]`.
+### Step 1: Perbaikan Instansiasi Prisma pada API `src/app/api/assessments/route.ts`
 
-2. **Halaman Review Dinamis (`/dashboard/assessment/[id]/page.tsx`)**:
-   - Rute dinamis yang dilingkari oleh layout dashboard terproteksi.
-   - Mengambil data asesmen lengkap dari API GET `/api/assessments/[id]` saat memuat halaman (_on mount_).
-   - Merender komponen **`ReviewStep`** secara langsung. Jika halaman di-hardrefresh, data pengerjaan tidak akan hilang karena ID asesmen tercantum di URL!
+- Hapus impor dinamis dan instansiasi langsung `new PrismaClient()` untuk mematuhi pedoman Prisma ORM (Golden Rule).
+- Gantikan dengan: `import { prisma } from "@/lib/prisma";`
+
+### Step 2: Perbaikan Instansiasi Prisma pada API `src/app/api/assessments/[id]/route.ts`
+
+- Hapus instansiasi `new PrismaClient()` langsung dalam fungsi `GET` dan `PUT`.
+- Gantikan dengan: `import { prisma } from "@/lib/prisma";`
+- Pastikan transaksi Prisma `prisma.$transaction` berjalan dengan benar untuk membersihkan soal lama dan memasukkan versi terbaru saat aksi "Simpan ke Bank Soal" dipicu.
+
+### Step 3: Pembaruan Komponen `ReviewStep.tsx`
+
+- Pastikan tombol yang ditampilkan hanya:
+  1. **Unduh PDF** (Icon `Download`, tombol utama filled)
+  2. **Unduh Word (.docx)** (Icon `FileText`, tombol outline)
+  3. **Simpan ke Bank Soal** (Icon `Save`, tombol outline/kustom)
+- Pastikan tidak ada tombol "Cetak Soal" (`Printer` icon) yang tersisa.
 
 ---
 
-## 4. Pembaruan Komponen ReviewStep & Penghapusan Tombol Cetak
+## 4. Dependencies (Dependensi)
 
-Sesuai instruksi:
+Tidak ada pustaka baru yang perlu dipasang. Penggunaan Prisma Client yang sudah ada melalui `@/lib/prisma` dan pustaka ikon `lucide-react` sudah mencukupi.
 
-- Menghapus tombol "Cetak Soal" (`Printer` icon).
-- Tombol yang tersedia hanya:
-  1. **Unduh PDF** (`Download` icon, jenis tombol utama).
-  2. **Unduh Word (.docx)** (`FileText` icon, jenis tombol outline).
-  3. **Simpan ke Bank Soal** (`Save` icon, jenis tombol outline / kustom untuk men-trigger penyimpanan perubahan ke database MySQL).
+---
+
+## 5. Edge Cases & Error Handling (Kasus Batas & Penanganan Error)
+
+- **Koneksi Database Terputus:** Jika MySQL mati saat memproses asesmen baru atau memperbarui soal, API akan merespons dengan status 500 dan pesan error yang terstruktur sehingga frontend dapat menampilkan alert yang deskriptif tanpa mengalami crash.
+- **Relasi Cascade:** Memastikan penghapusan soal lama (`tx.question.deleteMany`) secara otomatis menghapus pilihan jawaban (`Option`) terkait karena adanya konfigurasi `onDelete: Cascade` pada model `Option` di skema Prisma.
+- **Pengecekan Otorisasi:** Endpoint akan memverifikasi keberadaan `userId` untuk memastikan data asesmen disimpan ke user yang valid.
+
+---
+
+## 6. Bahasa Indonesia Explanation (Penjelasan dalam Bahasa Indonesia)
+
+Rencana ini bertujuan untuk memindahkan logika penyimpanan sementara (in-memory/state) ke dalam penyimpanan MySQL permanen. Dengan skema ini, guru tidak akan kehilangan data asesmen yang telah dihasilkan meskipun halaman web di-refresh (hard-reload) karena ID asesmen disimpan di URL rute `/dashboard/assessment/[id]`. Tombol ekspor juga dirapikan dengan membuang fitur cetak langsung demi kesederhanaan UX aplikasi.

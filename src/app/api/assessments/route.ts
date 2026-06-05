@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +23,6 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-
-    const { PrismaClient } = await import("@prisma/client");
-    const prisma = new PrismaClient({});
 
     // 1. Create the Assessment record
     const assessment = await prisma.assessment.create({
