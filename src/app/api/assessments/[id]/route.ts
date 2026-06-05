@@ -113,3 +113,39 @@ export async function PUT(
     );
   }
 }
+
+// DELETE - Delete assessment
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+
+    // Verify assessment exists
+    const assessmentExists = await prisma.assessment.findUnique({
+      where: { id },
+    });
+
+    if (!assessmentExists) {
+      return NextResponse.json(
+        { error: "Assessment not found." },
+        { status: 404 },
+      );
+    }
+
+    await prisma.assessment.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    console.error("Delete assessment error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { error: "Internal Server Error", message: errorMessage },
+      { status: 500 },
+    );
+  }
+}
