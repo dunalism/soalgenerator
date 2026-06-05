@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { GoogleGenerativeAI, SchemaType, Schema } from "@google/generative-ai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,25 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!rawInputText || rawInputText.trim().length < 10) {
+      return NextResponse.json(
+        { error: "Materi input terlalu pendek untuk dianalisis oleh AI." },
+        { status: 400 },
+      );
+    }
+
+    // Check for Gemini API Key
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Kunci API Gemini belum dikonfigurasi. Silakan tambahkan GEMINI_API_KEY di file .env Anda.",
+        },
+        { status: 500 },
+      );
+    }
+
     // 1. Create the Assessment record
     const assessment = await prisma.assessment.create({
       data: {
@@ -37,102 +57,108 @@ export async function POST(request: Request) {
       },
     });
 
-    // 2. Compile realistic questions list based on configuration
-    const questionsToCreate = [];
+    // 2. Call Gemini AI to generate structured questions
+    const genAI = new GoogleGenerativeAI(apiKey);
 
-    if (questionType === "MULTIPLE_CHOICE" || questionType === "MIXED") {
-      questionsToCreate.push(
-        {
-          questionText:
-            "Planet manakah di tata surya kita yang dijuluki sebagai 'Planet Merah'?",
-          type: "MULTIPLE_CHOICE",
-          order: 1,
-          answerKey: "Mars",
-          options: {
-            create: [
-              { optionText: "Venus", isCorrect: false },
-              { optionText: "Mars", isCorrect: true },
-              { optionText: "Merkurius", isCorrect: false },
-              { optionText: "Jupiter", isCorrect: false },
-            ],
+    const responseSchema: Schema = {
+      type: SchemaType.OBJECT,
+      properties: {
+        questions: {
+          type: SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT,
+            properties: {
+              questionText: { type: SchemaType.STRING },
+              type: {
+                type: SchemaType.STRING,
+                description:
+                  "Tipe soal: MULTIPLE_CHOICE, TRUE_FALSE, atau SHORT_ANSWER",
+              },
+              options: {
+                type: SchemaType.ARRAY,
+                description:
+                  "Pilihan jawaban (wajib ada tepat 4 pilihan jika tipe soal MULTIPLE_CHOICE, kosongkan jika TRUE_FALSE atau SHORT_ANSWER)",
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    optionText: { type: SchemaType.STRING },
+                    isCorrect: { type: SchemaType.BOOLEAN },
+                  },
+                  required: ["optionText", "isCorrect"],
+                },
+              },
+              answerKey: {
+                type: SchemaType.STRING,
+                description:
+                  "Kunci jawaban. Jika MULTIPLE_CHOICE, harus sama persis dengan optionText dari pilihan yang benar. Jika TRUE_FALSE, nilainya wajib berupa 'Benar' atau 'Salah'. Jika SHORT_ANSWER, berisi teks jawaban singkat.",
+              },
+            },
+            required: ["questionText", "type", "answerKey"],
           },
         },
-        {
-          questionText:
-            "Lapisan atmosfer bumi manakah yang berfungsi melindungi bumi dari radiasi ultraviolet berbahaya?",
-          type: "MULTIPLE_CHOICE",
-          order: 2,
-          answerKey: "Stratosfer (Lapisan Ozon)",
-          options: {
-            create: [
-              { optionText: "Mesosfer", isCorrect: false },
-              { optionText: "Stratosfer (Lapisan Ozon)", isCorrect: true },
-              { optionText: "Troposfer", isCorrect: false },
-              { optionText: "Termosfer", isCorrect: false },
-            ],
-          },
-        },
-      );
+      },
+      required: ["questions"],
+    };
+
+    const systemPrompt = `Anda adalah seorang guru ahli pembuat asesmen pendidikan pintar.
+Tugas Anda adalah membuat soal ujian berkualitas tinggi berdasarkan materi input teks yang diberikan oleh pengguna.
+
+Aturan Pembuatan Soal:
+1. Jumlah soal yang harus dihasilkan: ${questionCount} soal.
+2. Tingkat kesulitan soal: ${difficulty} (EASY: Fokus pada ingatan dan pemahaman dasar, MEDIUM: Fokus pada aplikasi dan analisis menengah, HARD: Fokus pada HOTS - Higher Order Thinking Skills, evaluasi, dan analisis mendalam).
+3. Tipe soal yang diminta: ${questionType}.
+   - Jika 'MULTIPLE_CHOICE', hasilkan HANYA soal pilihan ganda. Setiap soal wajib memiliki tepat 4 pilihan jawaban ('options') di mana hanya ada 1 pilihan yang benar ('isCorrect' bernilai true). 'answerKey' harus sama persis dengan teks pilihan yang benar tersebut.
+   - Jika 'TRUE_FALSE', hasilkan HANYA soal Benar/Salah. 'options' harus kosong, dan 'answerKey' harus berupa teks 'Benar' atau 'Salah'.
+   - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' harus kosong, dan 'answerKey' berisi teks jawaban singkat yang tepat.
+   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda, Benar/Salah, dan Isian Singkat).
+4. Semua teks soal, pilihan jawaban, dan kunci jawaban harus ditulis menggunakan Bahasa Indonesia yang baik, benar, baku, dan sesuai dengan materi input.
+5. Hasilkan soal yang relevan, mendidik, dan terstruktur dengan baik sesuai dengan data materi.`;
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,
+      },
+    });
+
+    const result = await model.generateContent({
+      contents: [
+        { role: "user", parts: [{ text: `Materi:\n${rawInputText}` }] },
+      ],
+      systemInstruction: systemPrompt,
+    });
+
+    const responseText = result.response.text();
+    if (!responseText) {
+      throw new Error("Menerima respon kosong dari model Gemini AI.");
     }
 
-    if (questionType === "TRUE_FALSE" || questionType === "MIXED") {
-      questionsToCreate.push(
-        {
-          questionText:
-            "Matahari merupakan sebuah bintang raksasa yang menghasilkan energinya melalui reaksi fusi nuklir.",
-          type: "TRUE_FALSE",
-          order: 3,
-          answerKey: "Benar",
-        },
-        {
-          questionText:
-            "Planet Jupiter memiliki permukaan padat yang mirip dengan permukaan Bumi.",
-          type: "TRUE_FALSE",
-          order: 4,
-          answerKey: "Salah",
-        },
-      );
-    }
-
-    if (questionType === "SHORT_ANSWER" || questionType === "MIXED") {
-      questionsToCreate.push(
-        {
-          questionText:
-            "Sebutkan satelit alami terbesar yang mengitari planet Bumi kita!",
-          type: "SHORT_ANSWER",
-          order: 5,
-          answerKey: "Bulan",
-        },
-        {
-          questionText:
-            "Apa nama galaksi spiral raksasa yang menjadi rumah bagi tata surya kita?",
-          type: "SHORT_ANSWER",
-          order: 6,
-          answerKey: "Bima Sakti (Milky Way)",
-        },
-      );
-    }
-
-    // Limit questions created based on requested questionCount
-    const slicedQuestions = questionsToCreate.slice(
-      0,
-      Number(questionCount) || 10,
-    );
+    const parsedData = JSON.parse(responseText);
+    const questionsList = parsedData.questions || [];
 
     // 3. Create all questions in the database
-    for (const q of slicedQuestions) {
+    for (let i = 0; i < questionsList.length; i++) {
+      const q = questionsList[i];
       await prisma.question.create({
         data: {
           assessmentId: assessment.id,
           questionText: q.questionText,
           type: q.type as "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER",
-          order: q.order,
+          order: i + 1,
           answerKey: q.answerKey,
           options:
-            "options" in q
-              ? (q.options as {
-                  create: { optionText: string; isCorrect: boolean }[];
-                })
+            q.type === "MULTIPLE_CHOICE" &&
+            q.options &&
+            Array.isArray(q.options)
+              ? {
+                  create: q.options.map(
+                    (opt: { optionText: string; isCorrect: boolean }) => ({
+                      optionText: opt.optionText,
+                      isCorrect: opt.isCorrect,
+                    }),
+                  ),
+                }
               : undefined,
         },
       });
