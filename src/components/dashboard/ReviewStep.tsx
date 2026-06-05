@@ -28,6 +28,7 @@ interface ReviewStepProps {
   difficulty: string;
   onSaveToBankSoal: () => void;
   isSaving: boolean;
+  hasChanges: boolean;
 }
 
 export function ReviewStep({
@@ -39,6 +40,7 @@ export function ReviewStep({
   difficulty,
   onSaveToBankSoal,
   isSaving,
+  hasChanges,
 }: ReviewStepProps) {
   const handleUpdateQuestion = (updatedQuestion: Question) => {
     setQuestions((prev) =>
@@ -158,14 +160,25 @@ export function ReviewStep({
           </Button>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            {/* Dinamis Save Button */}
             <Button
               onClick={onSaveToBankSoal}
-              disabled={isSaving}
-              variant="outline"
-              className="w-full sm:w-auto h-11 px-5 flex items-center justify-center gap-2 border-primary/45 text-primary hover:bg-primary/5"
+              disabled={!hasChanges || isSaving}
+              variant={hasChanges ? "default" : "outline"}
+              className={`w-full sm:w-auto h-11 px-5 flex items-center justify-center gap-2 transition-all ${
+                hasChanges
+                  ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 animate-pulse font-bold"
+                  : "border-muted-foreground/20 text-muted-foreground/60 bg-muted/20 cursor-default"
+              }`}
             >
               <Save className="h-4 w-4" />
-              <span>{isSaving ? "Menyimpan..." : "Simpan ke Bank Soal"}</span>
+              <span>
+                {isSaving
+                  ? "Menyimpan..."
+                  : hasChanges
+                    ? "Simpan Perubahan"
+                    : "Soal Tersimpan"}
+              </span>
             </Button>
             <Button
               onClick={() => handleExport("WORD")}

@@ -17,6 +17,26 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Monitor scroll for hiding/showing navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        setShowHeader(false); // Sembunyikan saat scroll ke bawah
+      } else if (currentScrollY < lastScrollY) {
+        setShowHeader(true); // Tampilkan saat scroll ke atas
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -61,7 +81,11 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Dashboard Navbar */}
-      <header className="border-b border-border bg-card px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm">
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 bg-card/95 backdrop-blur-sm border-b border-border px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm ${
+          showHeader ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
         <div className="flex items-center gap-3 sm:gap-6">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-lg text-primary">
@@ -121,7 +145,7 @@ export default function DashboardLayout({
       </header>
 
       {/* Dashboard Content */}
-      <main className="flex-1 flex flex-col container max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 flex flex-col container max-w-7xl mx-auto pt-24 pb-8 px-4 sm:px-6 lg:px-8">
         {children}
       </main>
     </div>

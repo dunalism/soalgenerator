@@ -115,7 +115,7 @@ Aturan Pembuatan Soal:
 5. Hasilkan soal yang relevan, mendidik, dan terstruktur dengan baik sesuai dengan data materi.`;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: responseSchema,
@@ -166,6 +166,7 @@ Aturan Pembuatan Soal:
 
     return NextResponse.json({ success: true, id: assessment.id });
   } catch (error: unknown) {
+    console.log("ERRORRR ERRORRR ERRRORRR");
     console.error("Create assessment error:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";

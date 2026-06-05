@@ -39,6 +39,7 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
     null,
   );
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [initialQuestions, setInitialQuestions] = useState<Question[]>([]);
 
   // Fetch Assessment details on mount
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
         );
 
         setQuestions(mappedQuestions);
+        setInitialQuestions(JSON.parse(JSON.stringify(mappedQuestions))); // Salinan murni untuk deteksi perubahan
       } catch (error) {
         const err = error as Error;
         console.error("Fetch error:", err);
@@ -102,7 +104,8 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
         throw new Error(data.error || "Gagal menyimpan perubahan.");
       }
 
-      alert("Asesmen berhasil disimpan ke Bank Soal database MySQL!");
+      setInitialQuestions(JSON.parse(JSON.stringify(questions))); // Reset state perubahan
+      alert("Perubahan berhasil disimpan ke Bank Soal database MySQL!");
     } catch (error) {
       const err = error as Error;
       console.error("Save error:", err);
@@ -111,6 +114,10 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
       setIsSaving(false);
     }
   };
+
+  // Hitung apakah ada perubahan pada soal dibanding data awal di DB
+  const hasChanges =
+    JSON.stringify(questions) !== JSON.stringify(initialQuestions);
 
   if (loading) {
     return (
@@ -136,6 +143,7 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
         onBack={() => router.push("/dashboard")}
         onSaveToBankSoal={handleSaveToBankSoal}
         isSaving={isSaving}
+        hasChanges={hasChanges}
       />
     </div>
   );
