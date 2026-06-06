@@ -13,6 +13,9 @@ import {
   FileText,
   ChevronRight,
   Brain,
+  Search,
+  X,
+  Filter,
 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,11 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
+interface MatchingQuestion {
+  id: string;
+  questionText: string;
+}
+
 interface Assessment {
   id: string;
   inputType: "TEXT" | "IMAGE";
@@ -36,6 +44,7 @@ interface Assessment {
   _count?: {
     questions: number;
   };
+  questions?: MatchingQuestion[];
 }
 
 export default function BankSoalPage() {
@@ -51,22 +60,57 @@ export default function BankSoalPage() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Fetch initial assessments
+  // Debounce search query
   useEffect(() => {
-    const fetchInitialAssessments = async (uid: string) => {
-      setLoading(true);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch assessments with parameters
+  const fetchAssessments = useCallback(
+    async (uid: string, pageNum: number, isLoadMore = false) => {
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
       try {
+        const queryParams = new URLSearchParams({
+          userId: uid,
+          page: pageNum.toString(),
+          limit: "6",
+        });
+
+        if (debouncedSearch) queryParams.append("search", debouncedSearch);
+        if (selectedDifficulty)
+          queryParams.append("difficulty", selectedDifficulty);
+        if (selectedType) queryParams.append("questionType", selectedType);
+
         const response = await fetch(
-          `/api/assessments?userId=${uid}&page=1&limit=6`,
+          `/api/assessments?${queryParams.toString()}`,
         );
         const data = await response.json();
 
         if (response.ok && data.success) {
-          setAssessments(data.assessments);
+          if (isLoadMore) {
+            setAssessments((prev) => [...prev, ...data.assessments]);
+          } else {
+            setAssessments(data.assessments);
+          }
           setHasMore(data.hasMore);
-          setPage(1);
+          setPage(pageNum);
         } else {
           console.error("Gagal mengambil data bank soal:", data.error);
         }
@@ -74,46 +118,31 @@ export default function BankSoalPage() {
         console.error("Fetch bank soal error:", error);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
-    };
+    },
+    [debouncedSearch, selectedDifficulty, selectedType],
+  );
 
+  // Monitor auth status & trigger initial fetch
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUserId(currentUser.uid);
-        fetchInitialAssessments(currentUser.uid);
+        // Initial fetch with current filter state
+        fetchAssessments(currentUser.uid, 1, false);
       }
       setAuthLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [fetchAssessments]);
 
   // Fetch more assessments on scroll
   const fetchMoreAssessments = useCallback(async () => {
     if (!userId || loadingMore || !hasMore) return;
-
-    setLoadingMore(true);
-    const nextPage = page + 1;
-
-    try {
-      const response = await fetch(
-        `/api/assessments?userId=${userId}&page=${nextPage}&limit=6`,
-      );
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setAssessments((prev) => [...prev, ...data.assessments]);
-        setHasMore(data.hasMore);
-        setPage(nextPage);
-      } else {
-        console.error("Gagal memuat paket soal lanjutan:", data.error);
-      }
-    } catch (error) {
-      console.error("Load more error:", error);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [userId, page, hasMore, loadingMore]);
+    await fetchAssessments(userId, page + 1, true);
+  }, [userId, page, hasMore, loadingMore, fetchAssessments]);
 
   // Sentinel ref for infinite scroll
   const sentinelRef = useCallback(
@@ -189,12 +218,20 @@ export default function BankSoalPage() {
     }
   };
 
-  if (authLoading || loading) {
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedDifficulty("");
+    setSelectedType("");
+  };
+
+  const isFiltered = searchQuery || selectedDifficulty || selectedType;
+
+  if (authLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-sm font-semibold text-muted-foreground">
-          Memuat Bank Soal Anda...
+          Memverifikasi Autentikasi...
         </p>
       </div>
     );
@@ -225,27 +262,113 @@ export default function BankSoalPage() {
         </Button>
       </div>
 
+      {/* Search and Filters Bar */}
+      <div className="bg-muted/30 p-4 rounded-xl border border-muted flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+        {/* Search Input */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Cari kata kunci materi atau butir soal (misal: 'oksigen')..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-background border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted text-muted-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Dropdowns */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Tipe Soal Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="appearance-none bg-background border px-3 pr-8 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all cursor-pointer min-w-[140px]"
+            >
+              <option value="">Semua Tipe</option>
+              <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
+              <option value="TRUE_FALSE">Benar / Salah</option>
+              <option value="SHORT_ANSWER">Isian Singkat</option>
+              <option value="MIXED">Campuran</option>
+            </select>
+            <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          </div>
+
+          {/* Kesulitan Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedDifficulty}
+              onChange={(e) => setSelectedDifficulty(e.target.value)}
+              className="appearance-none bg-background border px-3 pr-8 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all cursor-pointer min-w-[140px]"
+            >
+              <option value="">Semua Kesulitan</option>
+              <option value="EASY">Mudah</option>
+              <option value="MEDIUM">Sedang</option>
+              <option value="HARD">HOTS / Sulit</option>
+            </select>
+            <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+          </div>
+
+          {/* Reset Filter Button */}
+          {isFiltered && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-muted-foreground hover:text-foreground h-9"
+            >
+              Reset
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Grid of assessments */}
-      {assessments.length === 0 ? (
+      {loading && assessments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs font-semibold text-muted-foreground">
+            Menyaring Paket Soal Anda...
+          </p>
+        </div>
+      ) : assessments.length === 0 ? (
         <div className="border border-dashed rounded-xl py-16 px-4 text-center space-y-4 bg-muted/10">
           <div className="mx-auto bg-muted w-12 h-12 rounded-full flex items-center justify-center">
             <AlertCircle className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-foreground">
-              Belum ada Paket Soal tersimpan
+              {isFiltered
+                ? "Tidak ada hasil pencarian"
+                : "Belum ada Paket Soal tersimpan"}
             </h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Silakan buat paket soal/asesmen baru melalui menu Dashboard.
+              {isFiltered
+                ? "Cobalah untuk mengubah kriteria pencarian atau menyetel ulang filter."
+                : "Silakan buat paket soal/asesmen baru melalui menu Dashboard."}
             </p>
           </div>
-          <Button
-            onClick={() => router.push("/dashboard")}
-            variant="outline"
-            className="mt-2"
-          >
-            Mulai Generator AI
-          </Button>
+          {isFiltered ? (
+            <Button onClick={resetFilters} variant="outline" className="mt-2">
+              Setel Ulang Filter
+            </Button>
+          ) : (
+            <Button
+              onClick={() => router.push("/dashboard")}
+              variant="outline"
+              className="mt-2"
+            >
+              Mulai Generator AI
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -286,7 +409,7 @@ export default function BankSoalPage() {
                     {textSnippet}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pb-3">
+                <CardContent className="pb-3 space-y-3">
                   <div className="bg-muted/40 rounded-lg p-3 space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
@@ -317,6 +440,26 @@ export default function BankSoalPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Matching questions snippet box (Hybrid Search View) */}
+                  {assessment.questions && assessment.questions.length > 0 && (
+                    <div className="bg-primary/[0.03] border border-primary/10 rounded-lg p-3 text-xs space-y-2 animate-fade-in">
+                      <p className="font-semibold text-primary flex items-center gap-1">
+                        <Search className="h-3.5 w-3.5" />
+                        Soal yang mengandung "{debouncedSearch}":
+                      </p>
+                      <ul className="list-disc list-inside space-y-1.5 text-muted-foreground italic">
+                        {assessment.questions.map((q) => (
+                          <li
+                            key={q.id}
+                            className="line-clamp-2 pl-1 text-[11px] leading-relaxed"
+                          >
+                            "{q.questionText}"
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter className="pt-2 border-t flex justify-between gap-2 bg-muted/10 rounded-b-xl">
                   <Button

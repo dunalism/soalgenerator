@@ -22,16 +22,77 @@ export async function GET(request: Request) {
     const limit = Number(searchParams.get("limit") || "6");
     const skip = (page - 1) * limit;
 
+    const search = searchParams.get("search") || "";
+    const difficulty = searchParams.get("difficulty") || "";
+    const questionType = searchParams.get("questionType") || "";
+
+    // Build Prisma query filter clauses
+    const whereClause: {
+      userId: string;
+      difficulty?: "EASY" | "MEDIUM" | "HARD";
+      questionType?:
+        | "MULTIPLE_CHOICE"
+        | "TRUE_FALSE"
+        | "SHORT_ANSWER"
+        | "MIXED";
+      OR?: Array<{
+        rawInputText?: { contains: string };
+        questions?: { some: { questionText: { contains: string } } };
+      }>;
+    } = {
+      userId: userId,
+    };
+
+    if (difficulty) {
+      whereClause.difficulty = difficulty as "EASY" | "MEDIUM" | "HARD";
+    }
+
+    if (questionType) {
+      whereClause.questionType = questionType as
+        | "MULTIPLE_CHOICE"
+        | "TRUE_FALSE"
+        | "SHORT_ANSWER"
+        | "MIXED";
+    }
+
+    if (search) {
+      whereClause.OR = [
+        {
+          rawInputText: {
+            contains: search,
+          },
+        },
+        {
+          questions: {
+            some: {
+              questionText: {
+                contains: search,
+              },
+            },
+          },
+        },
+      ];
+    }
+
     const assessments = await prisma.assessment.findMany({
-      where: {
-        userId: userId,
-      },
+      where: whereClause,
       include: {
         _count: {
           select: {
             questions: true,
           },
         },
+        // Only fetch questions if searching, and only ones containing the search query
+        questions: search
+          ? {
+              where: {
+                questionText: {
+                  contains: search,
+                },
+              },
+              take: 2,
+            }
+          : undefined,
       },
       orderBy: {
         createdAt: "desc",
@@ -41,9 +102,7 @@ export async function GET(request: Request) {
     });
 
     const totalCount = await prisma.assessment.count({
-      where: {
-        userId: userId,
-      },
+      where: whereClause,
     });
 
     const hasMore = skip + assessments.length < totalCount;
