@@ -28,11 +28,17 @@ interface AssessmentData {
 
 interface AssessmentPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ source?: string }>;
 }
 
-export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
+export default function AssessmentReviewPage({
+  params,
+  searchParams,
+}: AssessmentPageProps) {
   const router = useRouter();
   const { id } = use(params);
+  const resolvedSearchParams = use(searchParams);
+  const source = resolvedSearchParams.source;
   const { showAlert } = useDialog();
 
   const [loading, setLoading] = useState(true);
@@ -140,7 +146,7 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto w-full">
-      <ProgressBar currentStep="REVIEW" />
+      {source !== "bank-soal" && <ProgressBar currentStep="REVIEW" />}
 
       <ReviewStep
         questions={questions}
@@ -148,7 +154,13 @@ export default function AssessmentReviewPage({ params }: AssessmentPageProps) {
         inputType={assessmentData?.inputType || "TEXT"}
         questionType={assessmentData?.questionType || ""}
         difficulty={assessmentData?.difficulty || ""}
-        onBack={() => router.push("/dashboard")}
+        onBack={() => {
+          if (source === "bank-soal") {
+            router.push("/dashboard/bank-soal");
+          } else {
+            router.push("/dashboard");
+          }
+        }}
         onSaveToBankSoal={handleSaveToBankSoal}
         isSaving={isSaving}
         hasChanges={hasChanges}
