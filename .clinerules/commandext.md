@@ -48,6 +48,7 @@ If a command fails or throws a parser exception due to accidental shell syntax m
 1. **Stop execution immediately.** Do not attempt a retry using the same operator.
 2. Rewrite the statement using standard PowerShell syntax by splitting commands onto separate lines or using semicolons.
 3. Verify that the current command execution model aligns with Windows terminal limitations before transmitting to the shell.
+4. never execute `pnpm run dev.`
 
 ```
 

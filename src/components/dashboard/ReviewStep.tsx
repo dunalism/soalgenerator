@@ -162,7 +162,7 @@ export function ReviewStep({
             className="w-full sm:w-auto h-11 px-5 flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>Edit Konfigurasi</span>
+            <span>Kembali</span>
           </Button>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
