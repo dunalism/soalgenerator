@@ -21,6 +21,7 @@ interface DBQuestion {
 }
 
 interface AssessmentData {
+  title?: string | null;
   inputType: "TEXT" | "IMAGE";
   questionType: string;
   difficulty: string;
@@ -151,6 +152,7 @@ export default function AssessmentReviewPage({
       <ReviewStep
         questions={questions}
         setQuestions={setQuestions}
+        title={assessmentData?.title || null}
         inputType={assessmentData?.inputType || "TEXT"}
         questionType={assessmentData?.questionType || ""}
         difficulty={assessmentData?.difficulty || ""}

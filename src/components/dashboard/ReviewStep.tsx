@@ -24,6 +24,7 @@ import { useCart, CartItem } from "@/lib/cart-context";
 interface ReviewStepProps {
   questions: Question[];
   setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
+  title?: string | null;
   onBack: () => void;
   inputType: "TEXT" | "IMAGE";
   questionType: string;
@@ -36,6 +37,7 @@ interface ReviewStepProps {
 export function ReviewStep({
   questions,
   setQuestions,
+  title,
   onBack,
   inputType,
   questionType,
@@ -72,7 +74,7 @@ export function ReviewStep({
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-yellow-500" />
-              Soal Berhasil Dihasilkan oleh AI!
+              {title || "Soal Berhasil Dihasilkan oleh AI!"}
             </h3>
             <p className="text-sm text-muted-foreground">
               Review, edit, atau hapus soal sebelum melakukan ekspor akhir.
