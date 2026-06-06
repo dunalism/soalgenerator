@@ -73,7 +73,6 @@ export function ReviewStep({
         <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-yellow-500" />
               {title || "Soal Berhasil Dihasilkan oleh AI!"}
             </h3>
             <p className="text-sm text-muted-foreground">

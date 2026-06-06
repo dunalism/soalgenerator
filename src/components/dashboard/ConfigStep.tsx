@@ -28,6 +28,8 @@ interface ConfigStepProps {
   setDifficulty: (diff: string) => void;
   title: string;
   setTitle: (val: string) => void;
+  optionsCount: number;
+  setOptionsCount: (count: number) => void;
   onBack: () => void;
   onGenerate: () => void;
 }
@@ -41,6 +43,8 @@ export function ConfigStep({
   setDifficulty,
   title,
   setTitle,
+  optionsCount,
+  setOptionsCount,
   onBack,
   onGenerate,
 }: ConfigStepProps) {
@@ -95,6 +99,28 @@ export function ConfigStep({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Jumlah Pilihan Jawaban - Hanya muncul untuk Pilihan Ganda & Campuran */}
+        {(questionType === "MULTIPLE_CHOICE" || questionType === "MIXED") && (
+          <div className="space-y-2 animate-fade-in">
+            <label className="text-sm font-semibold text-foreground block">
+              Jumlah Pilihan Jawaban (Khusus Pilihan Ganda)
+            </label>
+            <div className="flex gap-4">
+              {[4, 5].map((num) => (
+                <Button
+                  key={num}
+                  type="button"
+                  onClick={() => setOptionsCount(num)}
+                  variant={optionsCount === num ? "default" : "outline"}
+                  className="flex-1 h-10 font-medium"
+                >
+                  {num} Pilihan (A-{num === 4 ? "D" : "E"})
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Jumlah Soal */}
         <div className="space-y-2">

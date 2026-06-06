@@ -27,6 +27,7 @@ export default function DashboardGeneratePage() {
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>("MEDIUM");
   const [title, setTitle] = useState("");
+  const [optionsCount, setOptionsCount] = useState<number>(4);
 
   // Function to compress image using Canvas
   const compressImage = (
@@ -162,6 +163,7 @@ export default function DashboardGeneratePage() {
           questionCount,
           difficulty,
           title: title.trim(),
+          optionsCount,
         }),
       });
 
@@ -229,6 +231,8 @@ export default function DashboardGeneratePage() {
           setDifficulty={setDifficulty}
           title={title}
           setTitle={setTitle}
+          optionsCount={optionsCount}
+          setOptionsCount={setOptionsCount}
           onBack={() => setStep("INPUT")}
           onGenerate={handleGenerateQuestions}
         />

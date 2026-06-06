@@ -137,7 +137,10 @@ export async function POST(request: Request) {
       questionCount,
       difficulty,
       title,
+      optionsCount,
     } = body;
+
+    const targetOptionsCount = Number(optionsCount) === 5 ? 5 : 4;
 
     if (!userId) {
       return NextResponse.json(
@@ -198,8 +201,7 @@ export async function POST(request: Request) {
               },
               options: {
                 type: SchemaType.ARRAY,
-                description:
-                  "Pilihan jawaban (wajib ada tepat 4 pilihan jika tipe soal MULTIPLE_CHOICE, kosongkan jika TRUE_FALSE atau SHORT_ANSWER)",
+                description: `Pilihan jawaban (wajib ada tepat ${targetOptionsCount} pilihan jika tipe soal MULTIPLE_CHOICE, kosongkan jika TRUE_FALSE atau SHORT_ANSWER)`,
                 items: {
                   type: SchemaType.OBJECT,
                   properties: {
@@ -229,10 +231,10 @@ Aturan Pembuatan Soal:
 1. Jumlah soal yang harus dihasilkan: ${questionCount} soal.
 2. Tingkat kesulitan soal: ${difficulty} (EASY: Fokus pada ingatan dan pemahaman dasar, MEDIUM: Fokus pada aplikasi dan analisis menengah, HARD: Fokus pada HOTS - Higher Order Thinking Skills, evaluasi, dan analisis mendalam).
 3. Tipe soal yang diminta: ${questionType}.
-   - Jika 'MULTIPLE_CHOICE', hasilkan HANYA soal pilihan ganda. Setiap soal wajib memiliki tepat 4 pilihan jawaban ('options') di mana hanya ada 1 pilihan yang benar ('isCorrect' bernilai true). 'answerKey' harus sama persis dengan teks pilihan yang benar tersebut.
+   - Jika 'MULTIPLE_CHOICE', hasilkan HANYA soal pilihan ganda. Setiap soal wajib memiliki tepat ${targetOptionsCount} pilihan jawaban ('options') di mana hanya ada 1 pilihan yang benar ('isCorrect' bernilai true). 'answerKey' harus sama persis dengan teks pilihan yang benar tersebut.
    - Jika 'TRUE_FALSE', hasilkan HANYA soal Benar/Salah. 'options' harus kosong, dan 'answerKey' harus berupa teks 'Benar' atau 'Salah'.
    - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' harus kosong, dan 'answerKey' berisi teks jawaban singkat yang tepat.
-   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda, Benar/Salah, dan Isian Singkat).
+   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, dan Isian Singkat).
 4. Semua teks soal, pilihan jawaban, dan kunci jawaban harus ditulis menggunakan Bahasa Indonesia yang baik, benar, baku, dan sesuai dengan materi input.
 5. Hasilkan soal yang relevan, mendidik, dan terstruktur dengan baik sesuai dengan data materi.`;
 
