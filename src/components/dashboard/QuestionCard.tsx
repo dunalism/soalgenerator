@@ -24,7 +24,7 @@ interface Option {
 export interface Question {
   id: string;
   questionText: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
   options: Option[];
   answerKey: string;
 }
@@ -125,7 +125,9 @@ export function QuestionCard({
               ? "Pilihan Ganda"
               : question.type === "TRUE_FALSE"
                 ? "Benar/Salah"
-                : "Isian Singkat"}
+                : question.type === "MATCHING"
+                  ? "Menjodohkan (Matching)"
+                  : "Isian Singkat"}
           </span>
         </CardTitle>
         <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -176,17 +178,61 @@ export function QuestionCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Question Text in Textarea */}
-        {isEditing ? (
-          <Textarea
-            value={questionText}
-            onChange={(e) => setQuestionText(e.target.value)}
-            className="font-medium text-base min-h-[80px] border-primary/40 focus-visible:ring-primary resize-y"
-          />
-        ) : (
-          <p className="font-medium text-foreground text-base leading-relaxed">
-            {question.questionText}
-          </p>
+        {/* Question Text in Textarea (Hanya jika bukan Menjodohkan) */}
+        {question.type !== "MATCHING" &&
+          (isEditing ? (
+            <Textarea
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+              className="font-medium text-base min-h-[80px] border-primary/40 focus-visible:ring-primary resize-y"
+            />
+          ) : (
+            <p className="font-medium text-foreground text-base leading-relaxed">
+              {question.questionText}
+            </p>
+          ))}
+
+        {/* Layout khusus untuk Menjodohkan */}
+        {question.type === "MATCHING" && (
+          <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            {/* Left Premise */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase block">
+                Premis / Istilah (Kolom Kiri)
+              </label>
+              {isEditing ? (
+                <Textarea
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  className="font-medium text-sm min-h-[60px] border-primary/40 focus-visible:ring-primary resize-y"
+                  placeholder="Masukkan istilah / pertanyaan..."
+                />
+              ) : (
+                <div className="bg-muted/40 border border-border/80 rounded-lg py-2.5 px-3 text-sm font-semibold text-foreground">
+                  {questionText}
+                </div>
+              )}
+            </div>
+
+            {/* Right Matching Definition */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase block">
+                Kunci Jawaban Pasangan (Kolom Kanan)
+              </label>
+              {isEditing ? (
+                <Textarea
+                  value={answerKey}
+                  onChange={(e) => setAnswerKey(e.target.value)}
+                  className="font-medium text-sm min-h-[60px] border-primary/40 focus-visible:ring-primary resize-y"
+                  placeholder="Masukkan definisi / jawaban..."
+                />
+              ) : (
+                <div className="bg-primary/[0.03] border border-primary/20 rounded-lg py-2.5 px-3 text-sm font-semibold text-primary">
+                  {answerKey}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Options / Answers Area */}

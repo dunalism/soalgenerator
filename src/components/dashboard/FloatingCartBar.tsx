@@ -89,7 +89,10 @@ export function FloatingCartBar() {
         return;
       }
 
-      const questionsHtml = selectedQuestions
+      const matchingQs = selectedQuestions.filter((q) => q.type === "MATCHING");
+      const standardQs = selectedQuestions.filter((q) => q.type !== "MATCHING");
+
+      const standardQuestionsHtml = standardQs
         .map((q, idx) => {
           let optionsHtml = "";
           if (q.type === "MULTIPLE_CHOICE" && q.options) {
@@ -123,6 +126,52 @@ export function FloatingCartBar() {
         `;
         })
         .join("");
+
+      let matchingQuestionsHtml = "";
+      if (matchingQs.length > 0) {
+        // Collect definitions & shuffle them
+        const originalKeys = matchingQs.map((q) => q.answerKey);
+        const shuffledKeys = [...originalKeys].sort(() => Math.random() - 0.5);
+
+        matchingQuestionsHtml = `
+          <div style="margin-top: 30px; margin-bottom: 30px; page-break-inside: avoid;">
+            <p style="font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #1e3a8a;">
+              PETUNJUK: Jodohkanlah pernyataan di Kolom Kiri dengan pilihan jawaban yang tepat di Kolom Kanan!
+            </p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+              <thead>
+                <tr style="background-color: #f3f4f6;">
+                  <th style="border: 1px solid #d1d5db; padding: 10px; text-align: left; width: 50%; font-size: 14px; color: #1e3a8a;">KOLOM KIRI (PERNYATAAN)</th>
+                  <th style="border: 1px solid #d1d5db; padding: 10px; text-align: left; width: 50%; font-size: 14px; color: #1e3a8a;">KOLOM KANAN (JAWABAN)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${matchingQs
+                  .map((q, idx) => {
+                    const letter = String.fromCharCode(65 + idx);
+                    const responseText = shuffledKeys[idx];
+                    return `
+                    <tr>
+                      <td style="border: 1px solid #d1d5db; padding: 12px; font-size: 14px; line-height: 1.5; vertical-align: top;">
+                        <span style="font-weight: bold; margin-right: 8px;">${idx + 1}.</span> ${q.questionText}
+                      </td>
+                      <td style="border: 1px solid #d1d5db; padding: 12px; font-size: 14px; line-height: 1.5; vertical-align: top;">
+                        <span style="font-weight: bold; margin-right: 8px;">${letter}.</span> ${responseText}
+                      </td>
+                    </tr>
+                  `;
+                  })
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      const questionsHtml = `
+        ${standardQuestionsHtml}
+        ${matchingQuestionsHtml}
+      `;
 
       const answerKeysHtml = selectedQuestions
         .map((q, idx) => {

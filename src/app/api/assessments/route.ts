@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         | "MULTIPLE_CHOICE"
         | "TRUE_FALSE"
         | "SHORT_ANSWER"
+        | "MATCHING"
         | "MIXED";
       OR?: Array<{
         rawInputText?: { contains: string };
@@ -52,6 +53,7 @@ export async function GET(request: Request) {
         | "MULTIPLE_CHOICE"
         | "TRUE_FALSE"
         | "SHORT_ANSWER"
+        | "MATCHING"
         | "MIXED";
     }
 
@@ -197,7 +199,7 @@ export async function POST(request: Request) {
               type: {
                 type: SchemaType.STRING,
                 description:
-                  "Tipe soal: MULTIPLE_CHOICE, TRUE_FALSE, atau SHORT_ANSWER",
+                  "Tipe soal: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER, atau MATCHING",
               },
               options: {
                 type: SchemaType.ARRAY,
@@ -234,7 +236,8 @@ Aturan Pembuatan Soal:
    - Jika 'MULTIPLE_CHOICE', hasilkan HANYA soal pilihan ganda. Setiap soal wajib memiliki tepat ${targetOptionsCount} pilihan jawaban ('options') di mana hanya ada 1 pilihan yang benar ('isCorrect' bernilai true). 'answerKey' harus sama persis dengan teks pilihan yang benar tersebut.
    - Jika 'TRUE_FALSE', hasilkan HANYA soal Benar/Salah. 'options' harus kosong, dan 'answerKey' harus berupa teks 'Benar' atau 'Salah'.
    - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' harus kosong, dan 'answerKey' berisi teks jawaban singkat yang tepat.
-   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, dan Isian Singkat).
+   - Jika 'MATCHING', hasilkan HANYA soal Menjodohkan (Matching). 'questionText' berisi istilah/premis (di kolom kiri, misal: 'Oksigen'), 'options' wajib kosong, dan 'answerKey' berisi definisi/jawaban menjodohkannya yang tepat (di kolom kanan, misal: 'Gas yang dihirup manusia saat bernapas').
+   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, Isian Singkat, dan Menjodohkan).
 4. Semua teks soal, pilihan jawaban, dan kunci jawaban harus ditulis menggunakan Bahasa Indonesia yang baik, benar, baku, dan sesuai dengan materi input.
 5. Hasilkan soal yang relevan, mendidik, dan terstruktur dengan baik sesuai dengan data materi.`;
 
@@ -268,7 +271,11 @@ Aturan Pembuatan Soal:
         data: {
           assessmentId: assessment.id,
           questionText: q.questionText,
-          type: q.type as "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER",
+          type: q.type as
+            | "MULTIPLE_CHOICE"
+            | "TRUE_FALSE"
+            | "SHORT_ANSWER"
+            | "MATCHING",
           order: i + 1,
           answerKey: q.answerKey,
           options:

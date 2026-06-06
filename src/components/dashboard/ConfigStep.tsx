@@ -95,6 +95,7 @@ export function ConfigStep({
               <SelectItem value="SHORT_ANSWER">
                 Isian Singkat (Short Answer)
               </SelectItem>
+              <SelectItem value="MATCHING">Menjodohkan (Matching)</SelectItem>
               <SelectItem value="MIXED">Campuran (Mixed Assessment)</SelectItem>
             </SelectContent>
           </Select>

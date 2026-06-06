@@ -57,6 +57,7 @@ enum AssessmentType {
   MULTIPLE_CHOICE
   TRUE_FALSE
   SHORT_ANSWER
+  MATCHING
   MIXED
 }
 
@@ -92,6 +93,7 @@ enum QuestionType {
   MULTIPLE_CHOICE
   TRUE_FALSE
   SHORT_ANSWER
+  MATCHING
 }
 
 // 4. Model Pilihan Jawaban (Khusus Pilihan Ganda)
