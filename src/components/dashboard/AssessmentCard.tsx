@@ -31,6 +31,7 @@ export interface MatchingQuestion {
 
 export interface Assessment {
   id: string;
+  title?: string | null;
   inputType: "TEXT" | "IMAGE";
   rawInputText: string | null;
   questionType: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MIXED";
@@ -134,9 +135,10 @@ export function AssessmentCard({
   const cleanText =
     assessment.rawInputText?.replace(/[\r\n]+/g, " ").trim() || "";
   const textSnippet =
-    cleanText.length > 70
+    assessment.title ||
+    (cleanText.length > 70
       ? `${cleanText.substring(0, 70)}...`
-      : cleanText || "Materi Pelajaran";
+      : cleanText || "Materi Pelajaran");
 
   return (
     <Card className="flex flex-col h-full hover:shadow-md transition-shadow">
@@ -185,7 +187,7 @@ export function AssessmentCard({
             <div className="bg-primary/[0.03] border border-primary/10 rounded-lg p-3 text-xs space-y-2 animate-fade-in">
               <p className="font-semibold text-primary flex items-center gap-1">
                 <Search className="h-3.5 w-3.5" />
-                Soal yang mengandung "{debouncedSearch}":
+                Soal yang mengandung &quot;{debouncedSearch}&quot;:
               </p>
               <ul className="list-disc list-inside space-y-1.5 text-muted-foreground italic">
                 {assessment.questions.map((q) => (
@@ -193,7 +195,7 @@ export function AssessmentCard({
                     key={q.id}
                     className="line-clamp-2 pl-1 text-[11px] leading-relaxed"
                   >
-                    "{q.questionText}"
+                    &quot;{q.questionText}&quot;
                   </li>
                 ))}
               </ul>

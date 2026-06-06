@@ -136,6 +136,7 @@ export async function POST(request: Request) {
       questionType,
       questionCount,
       difficulty,
+      title,
     } = body;
 
     if (!userId) {
@@ -168,6 +169,7 @@ export async function POST(request: Request) {
     const assessment = await prisma.assessment.create({
       data: {
         userId,
+        title: title || null,
         inputType: inputType === "IMAGE" ? "IMAGE" : "TEXT",
         rawInputText: rawInputText,
         imageUrl: inputType === "IMAGE" ? imageUrl : "",

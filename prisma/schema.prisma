@@ -28,6 +28,8 @@ model Assessment {
   userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   
+  title         String?        @db.VarChar(255) // Nama/Judul paket soal kustom
+  
   // Input materi
   inputType     InputType      // TEXT atau IMAGE
   rawInputText  String?        @db.LongText // Teks input atau hasil OCR

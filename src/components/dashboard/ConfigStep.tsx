@@ -26,6 +26,8 @@ interface ConfigStepProps {
   setQuestionCount: (count: number) => void;
   difficulty: string;
   setDifficulty: (diff: string) => void;
+  title: string;
+  setTitle: (val: string) => void;
   onBack: () => void;
   onGenerate: () => void;
 }
@@ -37,6 +39,8 @@ export function ConfigStep({
   setQuestionCount,
   difficulty,
   setDifficulty,
+  title,
+  setTitle,
   onBack,
   onGenerate,
 }: ConfigStepProps) {
@@ -54,6 +58,20 @@ export function ConfigStep({
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Nama Paket Soal */}
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-foreground block">
+            Nama Paket Soal (Judul Asesmen)
+          </label>
+          <Input
+            type="text"
+            placeholder="Contoh: Penilaian Harian Fisika Bab 2 Gaya dan Energi"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-10 font-medium"
+          />
+        </div>
+
         {/* Tipe Soal */}
         <div className="space-y-2">
           <label className="text-sm font-semibold text-foreground block">
