@@ -5,7 +5,15 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Edit, Save, Check, RotateCcw } from "lucide-react";
+import {
+  Trash2,
+  Edit,
+  Save,
+  Check,
+  RotateCcw,
+  Square,
+  CheckSquare,
+} from "lucide-react";
 
 interface Option {
   id: string;
@@ -26,6 +34,9 @@ interface QuestionCardProps {
   index: number;
   onUpdate: (updatedQuestion: Question) => void;
   onDelete: (id: string) => void;
+  showCheckbox?: boolean;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
 }
 
 export function QuestionCard({
@@ -33,6 +44,9 @@ export function QuestionCard({
   index,
   onUpdate,
   onDelete,
+  showCheckbox = false,
+  checked = false,
+  onCheckedChange,
 }: QuestionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [questionText, setQuestionText] = useState(question.questionText);
@@ -88,7 +102,20 @@ export function QuestionCard({
   return (
     <Card className="hover:shadow-md transition-shadow relative overflow-hidden group">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-        <CardTitle className="text-base font-bold flex items-center gap-2">
+        <CardTitle className="text-base font-bold flex items-center gap-2 select-none">
+          {showCheckbox && (
+            <button
+              onClick={() => onCheckedChange?.(!checked)}
+              className="text-primary hover:scale-105 active:scale-95 transition-transform mr-1"
+              type="button"
+            >
+              {checked ? (
+                <CheckSquare className="h-5 w-5 fill-primary/10" />
+              ) : (
+                <Square className="h-5 w-5 text-muted-foreground" />
+              )}
+            </button>
+          )}
           <span className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-xs">
             {index + 1}
           </span>

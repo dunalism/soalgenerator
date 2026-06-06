@@ -7,6 +7,8 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Loader2, LogOut, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CartProvider } from "@/lib/cart-context";
+import { FloatingCartBar } from "@/components/dashboard/FloatingCartBar";
 
 export default function DashboardLayout({
   children,
@@ -145,9 +147,12 @@ export default function DashboardLayout({
       </header>
 
       {/* Dashboard Content */}
-      <main className="flex-1 flex flex-col container max-w-7xl mx-auto pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <CartProvider>
+        <main className="flex-1 flex flex-col container max-w-7xl mx-auto pt-24 pb-24 px-4 sm:px-6 lg:px-8">
+          {children}
+        </main>
+        <FloatingCartBar />
+      </CartProvider>
     </div>
   );
 }

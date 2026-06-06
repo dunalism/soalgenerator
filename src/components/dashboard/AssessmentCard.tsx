@@ -1,8 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Trash2, ChevronRight, Search } from "lucide-react";
+import {
+  Calendar,
+  Trash2,
+  ChevronRight,
+  Search,
+  Loader2,
+  Square,
+  CheckSquare,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCart, CartItem } from "@/lib/cart-context";
 import {
   Card,
   CardContent,
@@ -30,6 +43,20 @@ export interface Assessment {
   questions?: MatchingQuestion[];
 }
 
+interface Option {
+  id: string;
+  optionText: string;
+  isCorrect: boolean;
+}
+
+interface DetailedQuestion {
+  id: string;
+  questionText: string;
+  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+  options: Option[];
+  answerKey: string;
+}
+
 interface AssessmentCardProps {
   assessment: Assessment;
   debouncedSearch: string;
@@ -42,6 +69,33 @@ export function AssessmentCard({
   onDelete,
 }: AssessmentCardProps) {
   const router = useRouter();
+  const { isSelected, toggleQuestion } = useCart();
+
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [detailedQuestions, setDetailedQuestions] = useState<
+    DetailedQuestion[]
+  >([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+
+  const handleToggleExpand = async () => {
+    const nextState = !isExpanded;
+    setIsExpanded(nextState);
+
+    if (nextState && detailedQuestions.length === 0) {
+      setLoadingQuestions(true);
+      try {
+        const response = await fetch(`/api/assessments/${assessment.id}`);
+        const data = await response.json();
+        if (response.ok && data.assessment && data.assessment.questions) {
+          setDetailedQuestions(data.assessment.questions);
+        }
+      } catch (error) {
+        console.error("Gagal memuat detail butir soal:", error);
+      } finally {
+        setLoadingQuestions(false);
+      }
+    }
+  };
 
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty) {
@@ -125,47 +179,136 @@ export function AssessmentCard({
         </div>
 
         {/* Matching questions snippet box (Hybrid Search View) */}
-        {assessment.questions && assessment.questions.length > 0 && (
-          <div className="bg-primary/[0.03] border border-primary/10 rounded-lg p-3 text-xs space-y-2 animate-fade-in">
-            <p className="font-semibold text-primary flex items-center gap-1">
-              <Search className="h-3.5 w-3.5" />
-              Soal yang mengandung &quot;{debouncedSearch}&quot;:
+        {assessment.questions &&
+          assessment.questions.length > 0 &&
+          !isExpanded && (
+            <div className="bg-primary/[0.03] border border-primary/10 rounded-lg p-3 text-xs space-y-2 animate-fade-in">
+              <p className="font-semibold text-primary flex items-center gap-1">
+                <Search className="h-3.5 w-3.5" />
+                Soal yang mengandung "{debouncedSearch}":
+              </p>
+              <ul className="list-disc list-inside space-y-1.5 text-muted-foreground italic">
+                {assessment.questions.map((q) => (
+                  <li
+                    key={q.id}
+                    className="line-clamp-2 pl-1 text-[11px] leading-relaxed"
+                  >
+                    "{q.questionText}"
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+        {/* Expandable questions drawer list inside the card */}
+        {isExpanded && (
+          <div className="border border-primary/10 rounded-lg p-3 text-xs space-y-2 bg-primary/[0.01] animate-fade-in max-h-52 overflow-y-auto">
+            <p className="font-bold text-primary flex items-center gap-1 border-b pb-1.5">
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              Pilih Butir Soal:
             </p>
-            <ul className="list-disc list-inside space-y-1.5 text-muted-foreground italic">
-              {assessment.questions.map((q) => (
-                <li
-                  key={q.id}
-                  className="line-clamp-2 pl-1 text-[11px] leading-relaxed"
-                >
-                  &quot;{q.questionText}&quot;
-                </li>
-              ))}
-            </ul>
+            {loadingQuestions ? (
+              <div className="flex items-center justify-center py-4 gap-1.5 text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Memuat butir soal...</span>
+              </div>
+            ) : detailedQuestions.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground italic py-1 text-center">
+                Tidak ada soal di dalam paket ini.
+              </p>
+            ) : (
+              <div className="space-y-2 pt-1">
+                {detailedQuestions.map((q, idx) => {
+                  const checked = isSelected(q.id);
+                  const cartItem: CartItem = {
+                    id: q.id,
+                    questionText: q.questionText,
+                    type: q.type,
+                    options: q.options.map((opt) => ({
+                      id: opt.id,
+                      optionText: opt.optionText,
+                      isCorrect: opt.isCorrect,
+                    })),
+                    answerKey: q.answerKey,
+                    assessmentId: assessment.id,
+                    assessmentTextSnippet: `Paket ${getTypeLabel(assessment.questionType)}`,
+                  };
+
+                  return (
+                    <div
+                      key={q.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleQuestion(cartItem);
+                      }}
+                      className={`flex items-start gap-2 p-2 rounded-md border cursor-pointer hover:bg-primary/[0.03] transition-colors ${
+                        checked
+                          ? "border-primary/30 bg-primary/[0.02]"
+                          : "border-border/60 bg-background"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="text-primary mt-0.5 shrink-0"
+                      >
+                        {checked ? (
+                          <CheckSquare className="h-4 w-4 fill-primary/5" />
+                        ) : (
+                          <Square className="h-4 w-4 text-muted-foreground/80" />
+                        )}
+                      </button>
+                      <span className="text-[11px] leading-relaxed font-medium text-foreground">
+                        <strong className="text-primary">{idx + 1}.</strong>{" "}
+                        {q.questionText}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
-      <CardFooter className="pt-2 border-t flex justify-between gap-2 bg-muted/10 rounded-b-xl">
+      <CardFooter className="pt-2 border-t flex justify-between gap-1 bg-muted/10 rounded-b-xl flex-wrap">
         <Button
           onClick={() => onDelete(assessment.id)}
           variant="ghost"
           size="icon"
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/5 h-8 w-8"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-        <Button
-          onClick={() =>
-            router.push(
-              `/dashboard/assessment/${assessment.id}?source=bank-soal`,
-            )
-          }
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-1.5"
-        >
-          <span>Buka Paket</span>
-          <ChevronRight className="h-3 w-3" />
-        </Button>
+
+        <div className="flex gap-1.5 ml-auto">
+          <Button
+            onClick={handleToggleExpand}
+            variant="ghost"
+            size="sm"
+            className={`h-8 px-2 flex items-center gap-1 text-xs font-semibold ${
+              isExpanded ? "text-primary bg-primary/5" : "text-muted-foreground"
+            }`}
+          >
+            <span>{isExpanded ? "Tutup" : "Pilih Soal"}</span>
+            {isExpanded ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+          </Button>
+          <Button
+            onClick={() =>
+              router.push(
+                `/dashboard/assessment/${assessment.id}?source=bank-soal`,
+              )
+            }
+            variant="outline"
+            size="sm"
+            className="h-8 px-2.5 flex items-center gap-1.5 text-xs font-semibold"
+          >
+            <span>Buka Paket</span>
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

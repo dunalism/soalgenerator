@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
+import { useCart, CartItem } from "@/lib/cart-context";
 
 interface ReviewStepProps {
   questions: Question[];
@@ -44,6 +45,7 @@ export function ReviewStep({
   hasChanges,
 }: ReviewStepProps) {
   const { showAlert } = useDialog();
+  const { isSelected, toggleQuestion } = useCart();
 
   const handleUpdateQuestion = (updatedQuestion: Question) => {
     setQuestions((prev) =>
@@ -102,15 +104,34 @@ export function ReviewStep({
             </p>
           </Card>
         ) : (
-          questions.map((q, idx) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              index={idx}
-              onUpdate={handleUpdateQuestion}
-              onDelete={handleDeleteQuestion}
-            />
-          ))
+          questions.map((q, idx) => {
+            const cartItem: CartItem = {
+              id: q.id,
+              questionText: q.questionText,
+              type: q.type,
+              options: q.options.map((opt) => ({
+                id: opt.id,
+                optionText: opt.optionText,
+                isCorrect: opt.isCorrect,
+              })),
+              answerKey: q.answerKey,
+              assessmentId: "", // Will be filled dynamically if needed, or left empty
+              assessmentTextSnippet: `Paket ${questionType} - ${difficulty}`,
+            };
+
+            return (
+              <QuestionCard
+                key={q.id}
+                question={q}
+                index={idx}
+                onUpdate={handleUpdateQuestion}
+                onDelete={handleDeleteQuestion}
+                showCheckbox={true}
+                checked={isSelected(q.id)}
+                onCheckedChange={() => toggleQuestion(cartItem)}
+              />
+            );
+          })
         )}
       </div>
 
