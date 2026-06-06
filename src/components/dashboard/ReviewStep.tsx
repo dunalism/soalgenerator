@@ -55,35 +55,6 @@ export function ReviewStep({
     setQuestions((prev) => prev.filter((q) => q.id !== id));
   };
 
-  const handleAddQuestion = () => {
-    const newId = `q-new-${Date.now()}`;
-    const newQuestion: Question = {
-      id: newId,
-      questionText: "Ketik soal kustom baru Anda di sini...",
-      type: "MULTIPLE_CHOICE",
-      options: [
-        { id: `${newId}-o1`, optionText: "Pilihan Jawaban A", isCorrect: true },
-        {
-          id: `${newId}-o2`,
-          optionText: "Pilihan Jawaban B",
-          isCorrect: false,
-        },
-        {
-          id: `${newId}-o3`,
-          optionText: "Pilihan Jawaban C",
-          isCorrect: false,
-        },
-        {
-          id: `${newId}-o4`,
-          optionText: "Pilihan Jawaban D",
-          isCorrect: false,
-        },
-      ],
-      answerKey: "Pilihan Jawaban A",
-    };
-    setQuestions((prev) => [...prev, newQuestion]);
-  };
-
   const handleExport = (format: "PDF" | "WORD" | "PRINT") => {
     showAlert(
       "Ekspor Berhasil",
@@ -102,8 +73,7 @@ export function ReviewStep({
               Soal Berhasil Dihasilkan oleh AI!
             </h3>
             <p className="text-sm text-muted-foreground">
-              Review, edit, tambah, atau hapus soal sebelum melakukan ekspor
-              akhir.
+              Review, edit, atau hapus soal sebelum melakukan ekspor akhir.
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
               <span className="bg-background border px-2.5 py-0.5 rounded-full text-xs font-semibold">
@@ -120,15 +90,6 @@ export function ReviewStep({
               </span>
             </div>
           </div>
-
-          <Button
-            onClick={handleAddQuestion}
-            variant="outline"
-            className="flex items-center gap-2 h-10 border-dashed border-primary/50 text-primary hover:bg-primary/5"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>Tambah Soal</span>
-          </Button>
         </CardContent>
       </Card>
 
