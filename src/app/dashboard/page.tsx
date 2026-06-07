@@ -155,7 +155,7 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               Ubah teks ringkasan materi pelajaran, kurikulum, atau gambar buku
               paket dengan OCR pintar menjadi soal pilihan ganda, essay, atau
-              isian singkat instan.
+              Uraian/Esai instan.
             </p>
           </div>
           <Button

@@ -215,7 +215,7 @@ export default function BankSoalPage() {
           </div>
         </div>
         <Button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/dashboard/generate")}
           className="flex items-center gap-2"
         >
           <span>Buat Soal Baru</span>
@@ -256,8 +256,9 @@ export default function BankSoalPage() {
             >
               <option value="">Semua Tipe</option>
               <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
-              <option value="TRUE_FALSE">Benar / Salah</option>
-              <option value="SHORT_ANSWER">Isian Singkat</option>
+              <option value="TRUE_FALSE">Benar/Salah</option>
+              <option value="SHORT_ANSWER">Uraian/Esai</option>
+              <option value="MATCHING">Menjodohkan</option>
               <option value="MIXED">Campuran</option>
             </select>
             <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />

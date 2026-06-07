@@ -31,7 +31,7 @@ Mengimplementasikan backend pembuatan soal secara nyata menggunakan Google Gemin
 - Ambil kunci API dari `process.env.GEMINI_API_KEY`. Jika tidak dikonfigurasi, kirimkan respons error 500 yang jelas: "Kunci API Gemini belum dikonfigurasi."
 - Susun **System Prompt** dan **User Prompt** yang kuat untuk memandu model `gemini-1.5-flash` dalam merumuskan soal berbasis materi input teks:
   - **Tingkat Kesulitan:** EASY (Fokus pada ingatan/pemahaman dasar), MEDIUM (Analisis tingkat menengah), HARD (HOTS - Higher Order Thinking Skills).
-  - **Tipe Soal:** `MULTIPLE_CHOICE` (Pilihan Ganda dengan 4 opsi, 1 benar), `TRUE_FALSE` (Benar/Salah dengan kunci jawaban "Benar" atau "Salah"), `SHORT_ANSWER` (Isian Singkat).
+  - **Tipe Soal:** `MULTIPLE_CHOICE` (Pilihan Ganda dengan 4 opsi, 1 benar), `TRUE_FALSE` (Benar/Salah dengan kunci jawaban "Benar" atau "Salah"), `SHORT_ANSWER` (Uraian/Esai).
   - **Jumlah Soal:** Sesuai dengan `questionCount`.
 - Manfaatkan fitur **Structured Outputs (JSON Schema)** Gemini AI untuk memastikan response model selalu mengembalikan format JSON yang bersih dan sesuai dengan skema:
   ```typescript

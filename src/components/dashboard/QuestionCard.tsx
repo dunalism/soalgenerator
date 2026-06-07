@@ -127,7 +127,7 @@ export function QuestionCard({
                 ? "Benar/Salah"
                 : question.type === "MATCHING"
                   ? "Menjodohkan (Matching)"
-                  : "Isian Singkat"}
+                  : "Uraian/Esai"}
           </span>
         </CardTitle>
         <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -322,7 +322,7 @@ export function QuestionCard({
         {question.type === "SHORT_ANSWER" && (
           <div className="pt-2">
             <label className="text-xs font-semibold text-muted-foreground uppercase block mb-1">
-              Kunci Jawaban Isian
+              Kunci Jawaban Esai
             </label>
             {isEditing ? (
               answerKey.length > 50 ? (

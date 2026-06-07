@@ -73,7 +73,7 @@ export function ReviewStep({
         <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-              {title || "Soal Berhasil Dihasilkan oleh AI!"}
+              {title || "Paket Materi"}
             </h3>
             <p className="text-sm text-muted-foreground">
               Review, edit, atau hapus soal sebelum melakukan ekspor akhir.

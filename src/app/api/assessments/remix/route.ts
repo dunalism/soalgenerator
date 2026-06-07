@@ -72,7 +72,7 @@ export async function POST(request: Request) {
         data: {
           userId,
           inputType: "TEXT",
-          rawInputText: title.trim(),
+          title: title.trim(),
           questionType: questionType,
           questionCount: originalQuestions.length,
           difficulty: "MEDIUM",

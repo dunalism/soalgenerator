@@ -116,9 +116,9 @@ export function AssessmentCard({
       case "MULTIPLE_CHOICE":
         return "Pilihan Ganda";
       case "TRUE_FALSE":
-        return "Benar / Salah";
+        return "Benar/Salah";
       case "SHORT_ANSWER":
-        return "Isian Singkat";
+        return "Uraian/Esai";
       case "MIXED":
         return "Campuran";
       default:

@@ -79,7 +79,7 @@ export function InputStep({
     if (inputType === "IMAGE" && !selectedFile) {
       showAlert(
         "Gambar Kosong",
-        "Silakan unggah gambar materi pelajaran terlebih dahulu.",
+        "Silakan unggah gambar materi pelajaran terlebih dahulu.aaaaaa",
       );
       return;
     }

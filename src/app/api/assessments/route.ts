@@ -237,7 +237,7 @@ Aturan Pembuatan Soal:
    - Jika 'TRUE_FALSE', hasilkan HANYA soal Benar/Salah. 'options' harus kosong, dan 'answerKey' harus berupa teks 'Benar' atau 'Salah'.
    - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' harus kosong, dan 'answerKey' berisi teks jawaban singkat yang tepat.
    - Jika 'MATCHING', hasilkan HANYA soal Menjodohkan (Matching). 'questionText' berisi istilah/premis (di kolom kiri, misal: 'Oksigen'), 'options' wajib kosong, dan 'answerKey' berisi definisi/jawaban menjodohkannya yang tepat (di kolom kanan, misal: 'Gas yang dihirup manusia saat bernapas').
-   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, Isian Singkat, dan Menjodohkan).
+   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, Uraian/Esai, dan Menjodohkan).
 4. Semua teks soal, pilihan jawaban, dan kunci jawaban harus ditulis menggunakan Bahasa Indonesia yang baik, benar, baku, dan sesuai dengan materi input.
 5. Hasilkan soal yang relevan, mendidik, dan terstruktur dengan baik sesuai dengan data materi.`;
 

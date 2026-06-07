@@ -9,7 +9,7 @@
 ## 2. Tahap Konfigurasi
 
 - Guru memilih parameter asesmen:
-  - **Tipe Soal**: Pilihan Ganda (MULTIPLE_CHOICE), Benar/Salah (TRUE_FALSE), Isian Singkat (SHORT_ANSWER), atau Campuran (MIXED).
+  - **Tipe Soal**: Pilihan Ganda (MULTIPLE_CHOICE), Benar/Salah (TRUE_FALSE), Uraian/Esai (SHORT_ANSWER), atau Campuran (MIXED).
   - **Jumlah Soal**: Misalnya 10, 20, atau 50 soal.
   - **Tingkat Kesulitan**: Mudah (EASY), Sedang (MEDIUM), Sulit (HARD).
 

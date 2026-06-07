@@ -80,7 +80,7 @@ model Question {
   // Relasi ke pilihan jawaban (untuk pilihan ganda)
   options      Option[]
   
-  // Kunci jawaban (terutama untuk Isian Singkat atau Benar/Salah)
+  // Kunci jawaban (terutama untuk Uraian/Esai atau Benar/Salah)
   answerKey    String     @db.Text 
 
   createdAt    DateTime   @default(now())

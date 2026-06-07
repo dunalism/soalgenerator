@@ -90,10 +90,10 @@ export function ConfigStep({
                 Pilihan Ganda (Multiple Choice)
               </SelectItem>
               <SelectItem value="TRUE_FALSE">
-                Benar / Salah (True or False)
+                Benar/Salah (True or False)
               </SelectItem>
               <SelectItem value="SHORT_ANSWER">
-                Isian Singkat (Short Answer)
+                Uraian/Esai (Short Answer)
               </SelectItem>
               <SelectItem value="MATCHING">Menjodohkan (Matching)</SelectItem>
               <SelectItem value="MIXED">Campuran (Mixed Assessment)</SelectItem>

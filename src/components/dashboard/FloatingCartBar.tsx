@@ -113,7 +113,7 @@ export function FloatingCartBar() {
             </table>
           `;
           } else if (q.type === "TRUE_FALSE") {
-            optionsHtml = `<p style="font-size: 14px; margin-top: 8px; font-style: italic;">Pilihan: Benar / Salah</p>`;
+            optionsHtml = `<p style="font-size: 14px; margin-top: 8px; font-style: italic;">Pilihan: Benar/Salah</p>`;
           }
 
           return `
@@ -302,7 +302,7 @@ export function FloatingCartBar() {
               <Button
                 size="sm"
                 onClick={handleCompile}
-                disabled={isCompiling}
+                disabled={isCompiling || !newTitle.trim()}
                 className="flex items-center gap-1.5"
               >
                 {isCompiling ? (

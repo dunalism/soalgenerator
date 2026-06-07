@@ -85,7 +85,7 @@ Semua komponen standard seperti `@radix-ui/react-checkbox` atau sejenisnya sudah
 
 - **Keranjang Kosong:** `FloatingCartBar` otomatis disembunyikan jika jumlah soal terpilih adalah 0.
 - **Kompilasi Tanpa Soal:** Memvalidasi di client & API agar minimal 1 soal terpilih untuk melakukan kompilasi.
-- **Kompilasi Lintas Tipe:** Menangani jenis soal yang berbeda (pilihan ganda, benar salah, isian singkat) secara elegan ketika disatukan ke dalam satu paket `MIXED`.
+- **Kompilasi Lintas Tipe:** Menangani jenis soal yang berbeda (pilihan ganda, benar salah, Uraian/Esai) secara elegan ketika disatukan ke dalam satu paket `MIXED`.
 - **Relasi Database:** Memastikan deep copy soal menyalin seluruh relasi `Option` (pilihan ganda) dengan benar ke ID paket baru tanpa memengaruhi data asli.
 - **Batasan Akses User:** Memastikan user hanya bisa mengompilasi soal milik mereka sendiri.
 

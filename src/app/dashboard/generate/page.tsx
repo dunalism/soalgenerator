@@ -88,29 +88,29 @@ export default function DashboardGeneratePage() {
         return;
       }
 
+      if (!title) {
+        showAlert(
+          "Nama materi kosong",
+          "Silakan masukkan nama materi terlebih dahulu.",
+        );
+        setIsGenerating(false);
+        return;
+      }
+
       // If image input, run Tesseract OCR client-side first!
       if (inputType === "IMAGE") {
-        if (!selectedFile) {
-          showAlert(
-            "Gambar Kosong",
-            "Silakan unggah gambar materi pelajaran terlebih dahulu.",
-          );
-          setIsGenerating(false);
-          return;
-        }
-
         setLoadingText("Membaca teks dari gambar menggunakan OCR...");
 
         try {
-          let fileToProcess: File | Blob = selectedFile;
+          let fileToProcess: File | Blob = selectedFile!;
 
           // 1. Jika ukuran file lebih dari 1MB, kompres dulu di browser
-          if (selectedFile.size > 1024 * 1024) {
+          if (selectedFile!.size > 1024 * 1024) {
             try {
-              fileToProcess = await compressImage(selectedFile, 1200, 0.7);
+              fileToProcess = await compressImage(selectedFile!, 1200, 0.7);
               console.log(
                 "Gambar berhasil dikompres dari:",
-                selectedFile.size,
+                selectedFile!.size,
                 "ke:",
                 fileToProcess.size,
               );

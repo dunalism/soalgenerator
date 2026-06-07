@@ -5,7 +5,7 @@
 Menyempurnakan komponen `QuestionCard` (`src/components/dashboard/QuestionCard.tsx`) agar lebih fleksibel dalam mengedit soal panjang:
 
 1. **Mengubah input soal menjadi Textarea:** Input utama teks soal diubah dari `<Input>` menjadi `<Textarea>` agar guru dapat mengedit soal panjang/berparagraf dengan nyaman.
-2. **Kondisional Textarea untuk Pilihan & Kunci Isian:** Input pilihan jawaban (pilihan ganda) dan kunci jawaban isian singkat secara otomatis menggunakan `<Textarea>` jika teksnya melebihi 50 karakter, selebihnya menggunakan `<Input>` biasa.
+2. **Kondisional Textarea untuk Pilihan & Kunci Isian:** Input pilihan jawaban (pilihan ganda) dan kunci jawaban Uraian/Esai secara otomatis menggunakan `<Textarea>` jika teksnya melebihi 50 karakter, selebihnya menggunakan `<Input>` biasa.
 3. **Pemberitahuan Update Hanya Jika Berubah:** Tombol simpan hanya akan men-trigger fungsi `onUpdate` (yang memicu penyimpanan ke DB dan alert sukses) jika memang ada perubahan nyata pada teks soal, pilihan jawaban, atau kunci jawaban dibanding properti asli. Jika tidak ada perubahan, menutup mode edit langsung tanpa hit API/alert.
 4. **Tombol & Logika Reset:** Menambahkan tombol "Reset" (Reset / Undo) yang hanya muncul saat dalam mode edit dan terdeteksi ada perubahan dibanding data asli. Tombol ini akan mengembalikan seluruh state edit kembali ke nilai asli properti `question`.
 
@@ -52,7 +52,7 @@ Menyempurnakan komponen `QuestionCard` (`src/components/dashboard/QuestionCard.t
 ### Step 4: Penyesuaian UI & Input / Textarea Dinamis
 
 - Ganti input teks soal dengan `<Textarea className="min-h-[80px]" ... />`.
-- Pada input Pilihan Jawaban (Multiple Choice) dan Kunci Jawaban Isian (Short Answer):
+- Pada input Pilihan Jawaban (Multiple Choice) dan Kunci Jawaban Esai (Short Answer):
   - Jika panjang karakter teks state tersebut lebih dari 50 karakter (`text.length > 50`), render menggunakan `<Textarea ... />`.
   - Jika kurang dari atau sama dengan 50 karakter, render menggunakan `<Input ... />`.
 - Tambahkan tombol **Reset** (menggunakan icon `RotateCcw` atau teks "Reset" dengan tombol outline) di sebelah kiri tombol **Simpan** ketika mode edit aktif dan `hasChanges` bernilai `true`.
