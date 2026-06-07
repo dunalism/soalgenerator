@@ -170,21 +170,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Create the Assessment record in MySQL (Saves the material text directly)
-    const assessment = await prisma.assessment.create({
-      data: {
-        userId,
-        title: title || null,
-        inputType: inputType === "IMAGE" ? "IMAGE" : "TEXT",
-        rawInputText: rawInputText,
-        imageUrl: inputType === "IMAGE" ? imageUrl : "",
-        questionType: questionType || "MULTIPLE_CHOICE",
-        questionCount: Number(questionCount) || 10,
-        difficulty: difficulty || "MEDIUM",
-      },
-    });
-
-    // 2. Call Gemini AI to generate structured questions
+    // 1. Call Gemini AI first to generate structured questions
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const responseSchema: Schema = {
@@ -235,7 +221,7 @@ Aturan Pembuatan Soal:
 3. Tipe soal yang diminta: ${questionType}.
    - Jika 'MULTIPLE_CHOICE', hasilkan HANYA soal pilihan ganda. Setiap soal wajib memiliki tepat ${targetOptionsCount} pilihan jawaban ('options') di mana hanya ada 1 pilihan yang benar ('isCorrect' bernilai true). 'answerKey' harus sama persis dengan teks pilihan yang benar tersebut.
    - Jika 'TRUE_FALSE', hasilkan HANYA soal Benar/Salah. 'options' harus kosong, dan 'answerKey' harus berupa teks 'Benar' atau 'Salah'.
-   - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' harus kosong, dan 'answerKey' berisi teks jawaban singkat yang tepat.
+   - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' must be empty, dan 'answerKey' berisi teks jawaban singkat yang tepat.
    - Jika 'MATCHING', hasilkan HANYA soal Menjodohkan (Matching). 'questionText' berisi istilah/premis (di kolom kiri, misal: 'Oksigen'), 'options' wajib kosong, dan 'answerKey' berisi definisi/jawaban menjodohkannya yang tepat (di kolom kanan, misal: 'Gas yang dihirup manusia saat bernapas').
    - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, Uraian/Esai, dan Menjodohkan).
 4. Semua teks soal, pilihan jawaban, dan kunci jawaban harus ditulis menggunakan Bahasa Indonesia yang baik, benar, baku, dan sesuai dengan materi input.
@@ -264,36 +250,50 @@ Aturan Pembuatan Soal:
     const parsedData = JSON.parse(responseText);
     const questionsList = parsedData.questions || [];
 
-    // 3. Create all questions in the database
-    for (let i = 0; i < questionsList.length; i++) {
-      const q = questionsList[i];
-      await prisma.question.create({
-        data: {
-          assessmentId: assessment.id,
-          questionText: q.questionText,
-          type: q.type as
-            | "MULTIPLE_CHOICE"
-            | "TRUE_FALSE"
-            | "SHORT_ANSWER"
-            | "MATCHING",
-          order: i + 1,
-          answerKey: q.answerKey,
-          options:
-            q.type === "MULTIPLE_CHOICE" &&
-            q.options &&
-            Array.isArray(q.options)
-              ? {
-                  create: q.options.map(
-                    (opt: { optionText: string; isCorrect: boolean }) => ({
-                      optionText: opt.optionText,
-                      isCorrect: opt.isCorrect,
-                    }),
-                  ),
-                }
-              : undefined,
-        },
-      });
+    if (!Array.isArray(questionsList) || questionsList.length === 0) {
+      throw new Error(
+        "Gagal menghasilkan pertanyaan yang valid dari Gemini AI.",
+      );
     }
+
+    // 2. Create the Assessment record and its questions/options atomically in MySQL using nested writes
+    const assessment = await prisma.assessment.create({
+      data: {
+        userId,
+        title: title || null,
+        inputType: inputType === "IMAGE" ? "IMAGE" : "TEXT",
+        rawInputText: rawInputText,
+        imageUrl: inputType === "IMAGE" ? imageUrl : "",
+        questionType: questionType || "MULTIPLE_CHOICE",
+        questionCount: Number(questionCount) || 10,
+        difficulty: difficulty || "MEDIUM",
+        questions: {
+          create: questionsList.map((q, i) => ({
+            questionText: q.questionText,
+            type: q.type as
+              | "MULTIPLE_CHOICE"
+              | "TRUE_FALSE"
+              | "SHORT_ANSWER"
+              | "MATCHING",
+            order: i + 1,
+            answerKey: q.answerKey,
+            options:
+              q.type === "MULTIPLE_CHOICE" &&
+              q.options &&
+              Array.isArray(q.options)
+                ? {
+                    create: q.options.map(
+                      (opt: { optionText: string; isCorrect: boolean }) => ({
+                        optionText: opt.optionText,
+                        isCorrect: opt.isCorrect,
+                      }),
+                    ),
+                  }
+                : undefined,
+          })),
+        },
+      },
+    });
 
     return NextResponse.json({ success: true, id: assessment.id });
   } catch (error: unknown) {
