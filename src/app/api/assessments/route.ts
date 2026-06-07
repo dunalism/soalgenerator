@@ -30,12 +30,11 @@ export async function GET(request: Request) {
     const whereClause: {
       userId: string;
       difficulty?: "EASY" | "MEDIUM" | "HARD";
-      questionType?:
-        | "MULTIPLE_CHOICE"
-        | "TRUE_FALSE"
-        | "SHORT_ANSWER"
-        | "MATCHING"
-        | "MIXED";
+      questions?: {
+        some: {
+          type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
+        };
+      };
       OR?: Array<{
         rawInputText?: { contains: string };
         questions?: { some: { questionText: { contains: string } } };
@@ -49,12 +48,15 @@ export async function GET(request: Request) {
     }
 
     if (questionType) {
-      whereClause.questionType = questionType as
-        | "MULTIPLE_CHOICE"
-        | "TRUE_FALSE"
-        | "SHORT_ANSWER"
-        | "MATCHING"
-        | "MIXED";
+      whereClause.questions = {
+        some: {
+          type: questionType as
+            | "MULTIPLE_CHOICE"
+            | "TRUE_FALSE"
+            | "SHORT_ANSWER"
+            | "MATCHING",
+        },
+      };
     }
 
     if (search) {
