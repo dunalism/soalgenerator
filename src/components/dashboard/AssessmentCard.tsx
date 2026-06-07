@@ -53,7 +53,7 @@ interface Option {
 interface DetailedQuestion {
   id: string;
   questionText: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
   options: Option[];
   answerKey: string;
 }
@@ -61,12 +61,14 @@ interface DetailedQuestion {
 interface AssessmentCardProps {
   assessment: Assessment;
   debouncedSearch: string;
+  selectedType?: string;
   onDelete: (id: string) => Promise<void> | void;
 }
 
 export function AssessmentCard({
   assessment,
   debouncedSearch,
+  selectedType,
   onDelete,
 }: AssessmentCardProps) {
   const router = useRouter();
@@ -214,18 +216,29 @@ export function AssessmentCard({
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>Memuat butir soal...</span>
               </div>
-            ) : detailedQuestions.length === 0 ? (
+            ) : (selectedType
+                ? detailedQuestions.filter((q) => q.type === selectedType)
+                : detailedQuestions
+              ).length === 0 ? (
               <p className="text-[11px] text-muted-foreground italic py-1 text-center">
-                Tidak ada soal di dalam paket ini.
+                Tidak ada soal yang sesuai dengan tipe filter di dalam paket
+                ini.
               </p>
             ) : (
               <div className="space-y-2 pt-1">
-                {detailedQuestions.map((q, idx) => {
+                {(selectedType
+                  ? detailedQuestions.filter((q) => q.type === selectedType)
+                  : detailedQuestions
+                ).map((q, idx) => {
                   const checked = isSelected(q.id);
                   const cartItem: CartItem = {
                     id: q.id,
                     questionText: q.questionText,
-                    type: q.type,
+                    type: q.type as
+                      | "MULTIPLE_CHOICE"
+                      | "TRUE_FALSE"
+                      | "SHORT_ANSWER"
+                      | "MATCHING",
                     options: q.options.map((opt) => ({
                       id: opt.id,
                       optionText: opt.optionText,

@@ -338,6 +338,7 @@ export default function BankSoalPage() {
               key={assessment.id}
               assessment={assessment}
               debouncedSearch={debouncedSearch}
+              selectedType={selectedType}
               onDelete={handleDeleteAssessment}
             />
           ))}
