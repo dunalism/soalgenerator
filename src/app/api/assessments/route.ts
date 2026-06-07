@@ -140,6 +140,10 @@ export async function POST(request: Request) {
       difficulty,
       title,
       optionsCount,
+      mixedMcCount,
+      mixedTfCount,
+      mixedSaCount,
+      mixedMatchCount,
     } = body;
 
     const targetOptionsCount = Number(optionsCount) === 5 ? 5 : 4;
@@ -212,6 +216,22 @@ export async function POST(request: Request) {
       required: ["questions"],
     };
 
+    let mixedInstruction = "";
+    if (questionType === "MIXED") {
+      const mc = Number(mixedMcCount) || 0;
+      const tf = Number(mixedTfCount) || 0;
+      const sa = Number(mixedSaCount) || 0;
+      const match = Number(mixedMatchCount) || 0;
+      mixedInstruction = `   - Khusus untuk tipe 'MIXED' (Campuran), Anda WAJIB menghasilkan komposisi tipe soal berikut secara persis:
+     * Tepat ${mc} soal Pilihan Ganda (MULTIPLE_CHOICE) dengan ${targetOptionsCount} pilihan jawaban.
+     * Tepat ${tf} soal Benar/Salah (TRUE_FALSE).
+     * Tepat ${sa} soal Uraian/Esai (SHORT_ANSWER).
+     * Tepat ${match} soal Menjodohkan (MATCHING).
+     Pastikan jumlah total soal campuran yang Anda hasilkan bernilai tepat ${questionCount} soal sesuai aturan ini.`;
+    } else {
+      mixedInstruction = `   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, Uraian/Esai, dan Menjodohkan).`;
+    }
+
     const systemPrompt = `Anda adalah seorang guru ahli pembuat asesmen pendidikan pintar.
 Tugas Anda adalah membuat soal ujian berkualitas tinggi berdasarkan materi input teks yang diberikan oleh pengguna.
 
@@ -223,7 +243,7 @@ Aturan Pembuatan Soal:
    - Jika 'TRUE_FALSE', hasilkan HANYA soal Benar/Salah. 'options' harus kosong, dan 'answerKey' harus berupa teks 'Benar' atau 'Salah'.
    - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' must be empty, dan 'answerKey' berisi teks jawaban singkat yang tepat.
    - Jika 'MATCHING', hasilkan HANYA soal Menjodohkan (Matching). 'questionText' berisi istilah/premis (di kolom kiri, misal: 'Oksigen'), 'options' wajib kosong, dan 'answerKey' berisi definisi/jawaban menjodohkannya yang tepat (di kolom kanan, misal: 'Gas yang dihirup manusia saat bernapas').
-   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, Uraian/Esai, dan Menjodohkan).
+${mixedInstruction}
 4. Semua teks soal, pilihan jawaban, dan kunci jawaban harus ditulis menggunakan Bahasa Indonesia yang baik, benar, baku, dan sesuai dengan materi input.
 5. Hasilkan soal yang relevan, mendidik, dan terstruktur dengan baik sesuai dengan data materi.`;
 

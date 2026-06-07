@@ -29,6 +29,28 @@ export default function DashboardGeneratePage() {
   const [title, setTitle] = useState("");
   const [optionsCount, setOptionsCount] = useState<number>(4);
 
+  // States untuk tipe soal Campuran (Mixed)
+  const [mixedMcCount, setMixedMcCount] = useState<number>(3);
+  const [mixedTfCount, setMixedTfCount] = useState<number>(2);
+  const [mixedSaCount, setMixedSaCount] = useState<number>(2);
+  const [mixedMatchCount, setMixedMatchCount] = useState<number>(3);
+
+  const autoDistributeMixed = (total: number) => {
+    const base = Math.floor(total / 4);
+    const remainder = total % 4;
+
+    setMixedMcCount(base + (remainder > 0 ? 1 : 0));
+    setMixedTfCount(base + (remainder > 1 ? 1 : 0));
+    setMixedSaCount(base + (remainder > 2 ? 1 : 0));
+    setMixedMatchCount(base);
+  };
+
+  const handleSetQuestionCount = (count: number) => {
+    const val = isNaN(count) || count < 0 ? 0 : count;
+    setQuestionCount(val);
+    autoDistributeMixed(val);
+  };
+
   // Function to compress image using Canvas
   const compressImage = (
     file: File,
@@ -148,6 +170,20 @@ export default function DashboardGeneratePage() {
 
       setLoadingText("Menyusun Soal kustom dengan AI...");
 
+      // Validate mixed counts sum equals total count if type is MIXED
+      if (questionType === "MIXED") {
+        const sum =
+          mixedMcCount + mixedTfCount + mixedSaCount + mixedMatchCount;
+        if (sum !== questionCount) {
+          showAlert(
+            "Distribusi Soal Tidak Pas",
+            `Jumlah sub-soal (${sum}) harus sama dengan total soal (${questionCount}). Silakan sesuaikan kembali atau klik Bagi Rata.`,
+          );
+          setIsGenerating(false);
+          return;
+        }
+      }
+
       // 1. Call POST /api/assessments to save/generate in MySQL
       const response = await fetch("/api/assessments", {
         method: "POST",
@@ -164,6 +200,10 @@ export default function DashboardGeneratePage() {
           difficulty,
           title: title.trim(),
           optionsCount,
+          mixedMcCount,
+          mixedTfCount,
+          mixedSaCount,
+          mixedMatchCount,
         }),
       });
 
@@ -226,7 +266,7 @@ export default function DashboardGeneratePage() {
           questionType={questionType}
           setQuestionType={setQuestionType}
           questionCount={questionCount}
-          setQuestionCount={setQuestionCount}
+          setQuestionCount={handleSetQuestionCount}
           difficulty={difficulty}
           setDifficulty={setDifficulty}
           title={title}
@@ -235,6 +275,15 @@ export default function DashboardGeneratePage() {
           setOptionsCount={setOptionsCount}
           onBack={() => setStep("INPUT")}
           onGenerate={handleGenerateQuestions}
+          mixedMcCount={mixedMcCount}
+          setMixedMcCount={setMixedMcCount}
+          mixedTfCount={mixedTfCount}
+          setMixedTfCount={setMixedTfCount}
+          mixedSaCount={mixedSaCount}
+          setMixedSaCount={setMixedSaCount}
+          mixedMatchCount={mixedMatchCount}
+          setMixedMatchCount={setMixedMatchCount}
+          autoDistribute={() => autoDistributeMixed(questionCount)}
         />
       )}
     </div>

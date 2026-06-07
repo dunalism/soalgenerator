@@ -32,6 +32,15 @@ interface ConfigStepProps {
   setOptionsCount: (count: number) => void;
   onBack: () => void;
   onGenerate: () => void;
+  mixedMcCount: number;
+  setMixedMcCount: (count: number) => void;
+  mixedTfCount: number;
+  setMixedTfCount: (count: number) => void;
+  mixedSaCount: number;
+  setMixedSaCount: (count: number) => void;
+  mixedMatchCount: number;
+  setMixedMatchCount: (count: number) => void;
+  autoDistribute: () => void;
 }
 
 export function ConfigStep({
@@ -47,7 +56,20 @@ export function ConfigStep({
   setOptionsCount,
   onBack,
   onGenerate,
+  mixedMcCount,
+  setMixedMcCount,
+  mixedTfCount,
+  setMixedTfCount,
+  mixedSaCount,
+  setMixedSaCount,
+  mixedMatchCount,
+  setMixedMatchCount,
+  autoDistribute,
 }: ConfigStepProps) {
+  const totalDistributed =
+    mixedMcCount + mixedTfCount + mixedSaCount + mixedMatchCount;
+  const isBalanced = totalDistributed === questionCount;
+
   return (
     <Card>
       <CardHeader className="space-y-1.5 pb-6">
@@ -101,8 +123,9 @@ export function ConfigStep({
           </Select>
         </div>
 
-        {/* Jumlah Pilihan Jawaban - Hanya muncul untuk Pilihan Ganda & Campuran */}
-        {(questionType === "MULTIPLE_CHOICE" || questionType === "MIXED") && (
+        {/* Jumlah Pilihan Jawaban - Hanya muncul untuk Pilihan Ganda, & Campuran jika PG > 0 */}
+        {(questionType === "MULTIPLE_CHOICE" ||
+          (questionType === "MIXED" && mixedMcCount > 0)) && (
           <div className="space-y-2 animate-fade-in">
             <label className="text-sm font-semibold text-foreground block">
               Jumlah Pilihan Jawaban (Khusus Pilihan Ganda)
@@ -154,6 +177,222 @@ export function ConfigStep({
           </div>
         </div>
 
+        {/* Distribusi Campuran (Hanya muncul jika Tipe Soal === MIXED) */}
+        {questionType === "MIXED" && (
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/20 animate-fade-in">
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="text-sm font-bold text-foreground">
+                  Distribusi Soal Campuran
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Tentukan jumlah soal untuk setiap jenis pertanyaan.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={autoDistribute}
+                className="h-8 text-xs font-semibold gap-1.5"
+              >
+                <Sparkles className="h-3 w-3 text-yellow-500 animate-pulse" />
+                Bagi Rata
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Pilihan Ganda */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Pilihan Ganda
+                </label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    disabled={mixedMcCount <= 0}
+                    onClick={() =>
+                      setMixedMcCount(Math.max(0, mixedMcCount - 1))
+                    }
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={mixedMcCount}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseInt(e.target.value) || 0);
+                      setMixedMcCount(v);
+                    }}
+                    className="h-8 text-center text-xs font-bold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    onClick={() => setMixedMcCount(mixedMcCount + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+
+              {/* Benar/Salah */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Benar/Salah
+                </label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    disabled={mixedTfCount <= 0}
+                    onClick={() =>
+                      setMixedTfCount(Math.max(0, mixedTfCount - 1))
+                    }
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={mixedTfCount}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseInt(e.target.value) || 0);
+                      setMixedTfCount(v);
+                    }}
+                    className="h-8 text-center text-xs font-bold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    onClick={() => setMixedTfCount(mixedTfCount + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+
+              {/* Menjodohkan */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Menjodohkan
+                </label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    disabled={mixedMatchCount <= 0}
+                    onClick={() =>
+                      setMixedMatchCount(Math.max(0, mixedMatchCount - 1))
+                    }
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={mixedMatchCount}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseInt(e.target.value) || 0);
+                      setMixedMatchCount(v);
+                    }}
+                    className="h-8 text-center text-xs font-bold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    onClick={() => setMixedMatchCount(mixedMatchCount + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+
+              {/* Uraian */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Uraian/Esai
+                </label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    disabled={mixedSaCount <= 0}
+                    onClick={() =>
+                      setMixedSaCount(Math.max(0, mixedSaCount - 1))
+                    }
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={mixedSaCount}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseInt(e.target.value) || 0);
+                      setMixedSaCount(v);
+                    }}
+                    className="h-8 text-center text-xs font-bold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-sm"
+                    onClick={() => setMixedSaCount(mixedSaCount + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Indikator Status Jumlah */}
+            <div className="text-xs mt-2 font-medium flex items-center justify-between p-2 rounded bg-muted/40">
+              <span>
+                Total Terdistribusi:{" "}
+                <strong
+                  className={
+                    isBalanced
+                      ? "text-emerald-600 font-bold"
+                      : "text-destructive font-bold"
+                  }
+                >
+                  {totalDistributed}
+                </strong>{" "}
+                dari{" "}
+                <strong className="text-foreground">{questionCount}</strong>
+              </span>
+              {isBalanced ? (
+                <span className="text-emerald-600 font-bold flex items-center gap-1">
+                  ✓ Distribusi Pas
+                </span>
+              ) : (
+                <span className="text-destructive font-bold flex items-center gap-1 animate-pulse">
+                  ⚠ Selisih {Math.abs(questionCount - totalDistributed)}{" "}
+                  {totalDistributed > questionCount ? "Kelebihan" : "Kurang"}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Tingkat Kesulitan */}
         <div className="space-y-2">
           <label className="text-sm font-semibold text-foreground block">
@@ -184,7 +423,8 @@ export function ConfigStep({
 
         <Button
           onClick={onGenerate}
-          className="h-11 px-6 font-bold flex items-center gap-2 shadow-md bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 active:scale-[0.98] transition-all"
+          disabled={questionType === "MIXED" && !isBalanced}
+          className="h-11 px-6 font-bold flex items-center gap-2 shadow-md bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
         >
           <Sparkles className="h-4 w-4 text-yellow-400 animate-pulse" />
           <span>Buat Soal Sekarang</span>
