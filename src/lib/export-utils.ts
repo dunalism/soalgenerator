@@ -20,11 +20,14 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-// Generate the complete HTML content for both printing and Word exporting
+// Generate the complete HTML content optimized for either Print/PDF or MS Word
 export function generateAssessmentHtml(
   questions: ExportQuestion[],
   title: string = "Lembar Soal",
+  isWord: boolean = false,
 ): string {
+  const displayTitle = title && title.trim() ? title : "Lembar Soal";
+
   // 1. Group questions by type
   const mcQs = questions.filter((q) => q.type === "MULTIPLE_CHOICE");
   const tfQs = questions.filter((q) => q.type === "TRUE_FALSE");
@@ -41,11 +44,11 @@ export function generateAssessmentHtml(
     instruction: string,
   ): string {
     return `
-      <div style="margin-top: 24px; margin-bottom: 16px; page-break-inside: avoid;">
-        <h3 style="font-size: 12pt; font-weight: bold; margin: 0; text-transform: uppercase;">
+      <div style="margin-top: 24px; margin-bottom: 16px; page-break-inside: avoid; -webkit-column-break-inside: avoid;">
+        <h3 style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; font-weight: bold; margin: 0; text-transform: uppercase;">
           Bagian ${letter}: ${titleText}
         </h3>
-        <p style="font-size: 12pt; font-style: italic; margin: 4px 0 0 0;">
+        <p style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; font-style: italic; margin: 4px 0 0 0;">
           "${instruction}"
         </p>
       </div>
@@ -62,13 +65,13 @@ export function generateAssessmentHtml(
 
     let mcContent = "";
     mcQs.forEach((q, idx) => {
-      // Determine layout based on choice lengths
+      // Determine layout based on choice lengths (27 characters rule)
       const hasLongOption = q.options.some((opt) => opt.optionText.length > 27);
       let optionsRender = "";
 
       if (hasLongOption) {
         // Vertical layout
-        optionsRender = `<div style="margin-top: 6px; padding-left: 15px;">`;
+        optionsRender = `<div style="margin-top: 6px; padding-left: 15px; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">`;
         q.options.forEach((opt, optIdx) => {
           const letter = String.fromCharCode(97 + optIdx); // a, b, c, d, e
           optionsRender += `
@@ -84,7 +87,7 @@ export function generateAssessmentHtml(
         const leftCount = optsCount === 5 ? 3 : 2;
 
         optionsRender += `
-          <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 6px; margin-left: 15px;">
+          <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 6px; margin-left: 15px; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">
             <tr>
               <td style="width: 50%; border: none; padding: 0; vertical-align: top;">
         `;
@@ -122,13 +125,13 @@ export function generateAssessmentHtml(
       }
 
       mcContent += `
-        <div style="margin-bottom: 16px; page-break-inside: avoid; line-height: 1.5;">
+        <div style="margin-bottom: 16px; page-break-inside: avoid; -webkit-column-break-inside: avoid; line-height: 1.5; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">
           <table style="width: 100%; border-collapse: collapse; border: none;">
             <tr>
               <td style="width: 25px; border: none; padding: 0; vertical-align: top; font-weight: normal;">
                 ${idx + 1}.
               </td>
-              <td style="border: none; padding: 0; vertical-align: top;">
+              <td style="border: none; padding: 0; vertical-align: top; text-align: left;">
                 ${q.questionText}
               </td>
             </tr>
@@ -140,7 +143,7 @@ export function generateAssessmentHtml(
     bodyHtml += mcContent;
 
     // MC Keys
-    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid;"><h4 style="font-size: 12pt; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian A: Pilihan Ganda</h4><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 12pt;">`;
+    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid; -webkit-column-break-inside: avoid;"><h4 style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian A: Pilihan Ganda</h4><div style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; line-height: 1.5;">`;
     mcQs.forEach((q, idx) => {
       const correctIdx = q.options.findIndex((opt) => opt.isCorrect);
       const letter =
@@ -161,16 +164,16 @@ export function generateAssessmentHtml(
     let tfContent = "";
     tfQs.forEach((q, idx) => {
       tfContent += `
-        <div style="margin-bottom: 14px; page-break-inside: avoid; line-height: 1.5;">
+        <div style="margin-bottom: 14px; page-break-inside: avoid; -webkit-column-break-inside: avoid; line-height: 1.5; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">
           <table style="width: 100%; border-collapse: collapse; border: none;">
             <tr>
               <td style="width: 25px; border: none; padding: 0; vertical-align: top; font-weight: normal;">
                 ${idx + 1}.
               </td>
-              <td style="border: none; padding: 0; vertical-align: top;">
+              <td style="border: none; padding: 0; vertical-align: top; text-align: left;">
                 ${q.questionText}
               </td>
-              <td style="width: 80px; border: none; padding: 0; text-align: right; vertical-align: top; font-weight: bold; font-family: 'Times New Roman', serif;">
+              <td style="width: 80px; border: none; padding: 0; text-align: right; vertical-align: top; font-weight: bold;">
                 [ B  -  S ]
               </td>
             </tr>
@@ -181,7 +184,7 @@ export function generateAssessmentHtml(
     bodyHtml += tfContent;
 
     // TF Keys
-    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid;"><h4 style="font-size: 12pt; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian B: Benar/Salah</h4><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 12pt;">`;
+    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid; -webkit-column-break-inside: avoid;"><h4 style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian B: Benar/Salah</h4><div style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; line-height: 1.5;">`;
     tfQs.forEach((q, idx) => {
       keyHtml += `<div style="margin-bottom: 4px;"><strong>${idx + 1}.</strong> ${q.answerKey}</div>`;
     });
@@ -202,12 +205,12 @@ export function generateAssessmentHtml(
 
     // Build side-by-side table
     let matchContent = `
-      <div style="margin-bottom: 24px; page-break-inside: avoid;">
-        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12pt;">
+      <div style="margin-bottom: 24px; page-break-inside: avoid; -webkit-column-break-inside: avoid;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12pt; font-family: 'Times New Roman', Times, serif; border: 1px solid #000000;">
           <thead>
             <tr style="background-color: #f3f4f6;">
-              <th style="border: 1px solid #000; padding: 8px; text-align: left; width: 50%; font-weight: bold;">KOLOM KIRI (PERNYATAAN)</th>
-              <th style="border: 1px solid #000; padding: 8px; text-align: left; width: 50%; font-weight: bold;">KOLOM KANAN (JAWABAN)</th>
+              <th style="border: 1px solid #000000; padding: 8px; text-align: left; width: 50%; font-weight: bold;">KOLOM KIRI (PERNYATAAN)</th>
+              <th style="border: 1px solid #000000; padding: 8px; text-align: left; width: 50%; font-weight: bold;">KOLOM KANAN (JAWABAN)</th>
             </tr>
           </thead>
           <tbody>
@@ -218,10 +221,10 @@ export function generateAssessmentHtml(
       const rightOptionText = shuffledAnswers[idx];
       matchContent += `
         <tr>
-          <td style="border: 1px solid #000; padding: 10px; vertical-align: top; line-height: 1.4;">
+          <td style="border: 1px solid #000000; padding: 10px; vertical-align: top; line-height: 1.4;">
             <span style="font-weight: normal; margin-right: 6px;">${idx + 1}.</span>${q.questionText}
           </td>
-          <td style="border: 1px solid #000; padding: 10px; vertical-align: top; line-height: 1.4;">
+          <td style="border: 1px solid #000000; padding: 10px; vertical-align: top; line-height: 1.4;">
             <span style="font-weight: bold; margin-right: 6px;">${letter}.</span>${rightOptionText}
           </td>
         </tr>
@@ -236,7 +239,7 @@ export function generateAssessmentHtml(
     bodyHtml += matchContent;
 
     // Matching Keys
-    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid;"><h4 style="font-size: 12pt; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian C: Menjodohkan</h4><div style="font-size: 12pt; line-height: 1.5;">`;
+    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid; -webkit-column-break-inside: avoid;"><h4 style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian C: Menjodohkan</h4><div style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; line-height: 1.5;">`;
     matchQs.forEach((q, idx) => {
       // Find which letter corresponds to this q's actual answerKey
       const correctIdxInShuffled = shuffledAnswers.findIndex(
@@ -262,13 +265,13 @@ export function generateAssessmentHtml(
     let essayContent = "";
     essayQs.forEach((q, idx) => {
       essayContent += `
-        <div style="margin-bottom: 16px; page-break-inside: avoid; line-height: 1.5;">
+        <div style="margin-bottom: 16px; page-break-inside: avoid; -webkit-column-break-inside: avoid; line-height: 1.5; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">
           <table style="width: 100%; border-collapse: collapse; border: none;">
             <tr>
               <td style="width: 25px; border: none; padding: 0; vertical-align: top; font-weight: normal;">
                 ${idx + 1}.
               </td>
-              <td style="border: none; padding: 0; vertical-align: top;">
+              <td style="border: none; padding: 0; vertical-align: top; text-align: left;">
                 ${q.questionText}
               </td>
             </tr>
@@ -279,12 +282,12 @@ export function generateAssessmentHtml(
     bodyHtml += essayContent;
 
     // Essay Keys
-    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid;"><h4 style="font-size: 12pt; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian D: Uraian/Esai</h4><div style="font-size: 12pt; line-height: 1.5;">`;
+    keyHtml += `<div style="margin-bottom: 20px; page-break-inside: avoid; -webkit-column-break-inside: avoid;"><h4 style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; font-weight: bold; margin-bottom: 8px;">Kunci Jawaban Bagian D: Uraian/Esai</h4><div style="font-size: 12pt; font-family: 'Times New Roman', Times, serif; line-height: 1.5;">`;
     essayQs.forEach((q, idx) => {
       keyHtml += `
         <div style="margin-bottom: 12px;">
           <strong>No ${idx + 1}:</strong><br/>
-          <div style="padding-left: 15px; margin-top: 4px; font-style: italic; color: #374151;">
+          <div style="padding-left: 15px; margin-top: 4px; font-style: italic; color: #111827;">
             ${q.answerKey}
           </div>
         </div>
@@ -293,12 +296,96 @@ export function generateAssessmentHtml(
     keyHtml += `</div></div>`;
   }
 
-  // Combine document with styling
+  // Combine document with styling. If exporting to Word, wrap with MS Office XML namespaces
+  if (isWord) {
+    return `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <title>${displayTitle}</title>
+          <!--[if gte mso 9]>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>100</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            @page Section1 {
+              size: 595.3pt 841.9pt; /* A4 size */
+              margin: 56.7pt 56.7pt 56.7pt 56.7pt; /* 2.0cm margins */
+              mso-header-margin: 35.4pt;
+              mso-footer-margin: 35.4pt;
+              mso-paper-source: 0;
+            }
+            div.Section1 {
+              page: Section1;
+            }
+            body {
+              font-family: 'Times New Roman', Times, serif;
+              font-size: 12pt;
+              color: #000000;
+              line-height: 1.5;
+            }
+            .main-header {
+              text-align: center;
+              border-bottom: 3px double #000000;
+              padding-bottom: 10px;
+              margin-bottom: 24px;
+            }
+            .main-header h1 {
+              margin: 0;
+              font-size: 16pt;
+              font-family: 'Times New Roman', Times, serif;
+              font-weight: bold;
+              text-transform: uppercase;
+            }
+            .main-header p {
+              margin: 4px 0 0 0;
+              font-size: 10pt;
+              font-family: 'Times New Roman', Times, serif;
+              font-style: italic;
+            }
+          </style>
+        </head>
+        <body lang="ID-ID" style="tab-interval: 36.0pt;">
+          <div class="Section1">
+            <!-- Header Ujian -->
+            <div class="main-header">
+              <h1>${displayTitle}</h1>
+              <p>Dibuat Otomatis Menggunakan Asisten AI SoalGenerator Pintar</p>
+            </div>
+
+            <!-- Konten Soal -->
+            <div style="margin-bottom: 40px;">
+              ${bodyHtml}
+            </div>
+
+            <!-- Kunci Jawaban (Halaman Baru) -->
+            <br clear="all" style="page-break-before: always; mso-break-type: section-break;" />
+            <div>
+              <div class="main-header">
+                <h1>KUNCI JAWABAN</h1>
+                <p>Lembar Kunci Jawaban untuk: ${displayTitle}</p>
+              </div>
+              <div style="margin-top: 20px;">
+                ${keyHtml}
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  // Fallback / standard print output
   return `
     <html>
       <head>
         <meta charset="utf-8">
-        <title>${title}</title>
+        <title>${displayTitle}</title>
         <style>
           @page {
             size: A4;
@@ -361,7 +448,7 @@ export function generateAssessmentHtml(
 
         <!-- Header Ujian -->
         <div class="main-header">
-          <h1>${title}</h1>
+          <h1>${displayTitle}</h1>
           <p>Dibuat Otomatis Menggunakan Asisten AI SoalGenerator Pintar</p>
         </div>
 
@@ -374,7 +461,7 @@ export function generateAssessmentHtml(
         <div style="page-break-before: always; margin-top: 40px;">
           <div class="main-header">
             <h1>KUNCI JAWABAN</h1>
-            <p>Lembar Kunci Jawaban untuk: ${title}</p>
+            <p>Lembar Kunci Jawaban untuk: ${displayTitle}</p>
           </div>
           <div style="margin-top: 20px;">
             ${keyHtml}
@@ -385,16 +472,17 @@ export function generateAssessmentHtml(
   `;
 }
 
-// Download the generated HTML as Microsoft Word format
+// Download the generated HTML as Microsoft Word format (.doc) optimized for Print Layout
 export function downloadAsWord(
   questions: ExportQuestion[],
   title: string = "Lembar Soal",
 ) {
-  const htmlContent = generateAssessmentHtml(questions, title);
+  const displayTitle = title && title.trim() ? title : "Lembar Soal";
+  const htmlContent = generateAssessmentHtml(questions, displayTitle, true);
 
   // Create blob with word MIME-type
   const blob = new Blob(["\ufeff" + htmlContent], {
-    type: "application/msword",
+    type: "application/msword;charset=utf-8",
   });
 
   const url = URL.createObjectURL(blob);
@@ -402,7 +490,7 @@ export function downloadAsWord(
   a.href = url;
 
   // Format file name
-  const safeTitle = title
+  const safeTitle = displayTitle
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
@@ -419,7 +507,8 @@ export function openPrintLayout(
   questions: ExportQuestion[],
   title: string = "Lembar Soal",
 ) {
-  const htmlContent = generateAssessmentHtml(questions, title);
+  const displayTitle = title && title.trim() ? title : "Lembar Soal";
+  const htmlContent = generateAssessmentHtml(questions, displayTitle, false);
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
     throw new Error(
