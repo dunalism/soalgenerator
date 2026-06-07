@@ -670,6 +670,7 @@ export function downloadAsWord(
 
         children.push(
           new Table({
+            indent: { size: 432, type: WidthType.DXA },
             width: { size: 100, type: WidthType.PERCENTAGE },
             borders: {
               top: { style: BorderStyle.NONE },
@@ -693,14 +694,6 @@ export function downloadAsWord(
                 ],
               }),
             ],
-          }),
-        );
-
-        // Tambah spasi setelah tabel pilihan ganda
-        children.push(
-          new Paragraph({
-            children: [],
-            spacing: { after: 120 },
           }),
         );
       }
@@ -759,14 +752,6 @@ export function downloadAsWord(
               ],
             }),
           ],
-        }),
-      );
-
-      // Spasi setelah setiap nomor Benar/Salah
-      children.push(
-        new Paragraph({
-          children: [],
-          spacing: { after: 120 },
         }),
       );
     });
