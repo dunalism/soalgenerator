@@ -19,6 +19,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadAsWord, openPrintLayout } from "@/lib/export-utils";
 
 export function FloatingCartBar() {
   const { selectedQuestions, clearCart, toggleQuestion, isSelected } =
@@ -82,168 +83,16 @@ export function FloatingCartBar() {
   };
 
   const handleExport = (format: "WORD" | "PDF" | "PRINT") => {
-    if (format === "PRINT") {
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        showAlert("Gagal membuka window", "Pop-up diblokir oleh browser.");
-        return;
+    try {
+      if (format === "WORD") {
+        downloadAsWord(selectedQuestions, "Paket Remix Soal");
+      } else {
+        openPrintLayout(selectedQuestions, "Paket Remix Soal");
       }
-
-      const matchingQs = selectedQuestions.filter((q) => q.type === "MATCHING");
-      const standardQs = selectedQuestions.filter((q) => q.type !== "MATCHING");
-
-      const standardQuestionsHtml = standardQs
-        .map((q, idx) => {
-          let optionsHtml = "";
-          if (q.type === "MULTIPLE_CHOICE" && q.options) {
-            optionsHtml = `
-            <table style="width: 100%; margin-top: 8px; font-size: 14px;">
-              ${q.options
-                .map(
-                  (opt, optIdx) => `
-                <tr>
-                  <td style="width: 25px; vertical-align: top; font-weight: bold;">
-                    ${String.fromCharCode(65 + optIdx)}.
-                  </td>
-                  <td>${opt.optionText}</td>
-                </tr>
-              `,
-                )
-                .join("")}
-            </table>
-          `;
-          } else if (q.type === "TRUE_FALSE") {
-            optionsHtml = `<p style="font-size: 14px; margin-top: 8px; font-style: italic;">Pilihan: Benar/Salah</p>`;
-          }
-
-          return `
-          <div style="margin-bottom: 24px; page-break-inside: avoid;">
-            <p style="font-size: 15px; font-weight: 500; margin: 0; line-height: 1.5;">
-              <strong>${idx + 1}.</strong> ${q.questionText}
-            </p>
-            ${optionsHtml}
-          </div>
-        `;
-        })
-        .join("");
-
-      let matchingQuestionsHtml = "";
-      if (matchingQs.length > 0) {
-        // Collect definitions & shuffle them
-        const originalKeys = matchingQs.map((q) => q.answerKey);
-        const shuffledKeys = [...originalKeys].sort(() => Math.random() - 0.5);
-
-        matchingQuestionsHtml = `
-          <div style="margin-top: 30px; margin-bottom: 30px; page-break-inside: avoid;">
-            <p style="font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #1e3a8a;">
-              PETUNJUK: Jodohkanlah pernyataan di Kolom Kiri dengan pilihan jawaban yang tepat di Kolom Kanan!
-            </p>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-              <thead>
-                <tr style="background-color: #f3f4f6;">
-                  <th style="border: 1px solid #d1d5db; padding: 10px; text-align: left; width: 50%; font-size: 14px; color: #1e3a8a;">KOLOM KIRI (PERNYATAAN)</th>
-                  <th style="border: 1px solid #d1d5db; padding: 10px; text-align: left; width: 50%; font-size: 14px; color: #1e3a8a;">KOLOM KANAN (JAWABAN)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${matchingQs
-                  .map((q, idx) => {
-                    const letter = String.fromCharCode(65 + idx);
-                    const responseText = shuffledKeys[idx];
-                    return `
-                    <tr>
-                      <td style="border: 1px solid #d1d5db; padding: 12px; font-size: 14px; line-height: 1.5; vertical-align: top;">
-                        <span style="font-weight: bold; margin-right: 8px;">${idx + 1}.</span> ${q.questionText}
-                      </td>
-                      <td style="border: 1px solid #d1d5db; padding: 12px; font-size: 14px; line-height: 1.5; vertical-align: top;">
-                        <span style="font-weight: bold; margin-right: 8px;">${letter}.</span> ${responseText}
-                      </td>
-                    </tr>
-                  `;
-                  })
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
-      }
-
-      const questionsHtml = `
-        ${standardQuestionsHtml}
-        ${matchingQuestionsHtml}
-      `;
-
-      const answerKeysHtml = selectedQuestions
-        .map((q, idx) => {
-          return `
-          <div style="margin-bottom: 8px; font-size: 13px;">
-            <strong>No ${idx + 1}:</strong> ${q.answerKey}
-          </div>
-        `;
-        })
-        .join("");
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Cetak Remix Soal</title>
-            <style>
-              body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px; color: #1f2937; line-height: 1.5; }
-              .header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 30px; }
-              .header h1 { margin: 0; font-size: 24px; color: #1e3a8a; }
-              .header p { margin: 4px 0 0; font-size: 13px; color: #6b7280; }
-              .section-title { font-size: 16px; font-weight: bold; margin-bottom: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; color: #1e3a8a; }
-              .answers-container { margin-top: 50px; page-break-before: always; }
-              @media print {
-                body { padding: 0; }
-                .no-print { display: none; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
-              <button onclick="window.print()" style="background: #3b82f6; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                Cetak Halaman Ini
-              </button>
-            </div>
-            <div class="header">
-              <h1>LEMBAR SOAL REMIX</h1>
-              <p>Dibuat secara otomatis dengan SoalGenerator Pintar</p>
-            </div>
-            <div class="section-title">DAFTAR BUTIR SOAL</div>
-            <div>${questionsHtml}</div>
-
-            <div class="answers-container">
-              <div class="header">
-                <h1>KUNCI JAWABAN</h1>
-                <p>Kunci jawaban untuk lembar soal di atas</p>
-              </div>
-              <div class="section-title">KUNCI JAWABAN</div>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                ${answerKeysHtml}
-              </div>
-            </div>
-            <script>
-              window.onload = function() {
-                // Auto-print option
-              }
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      return;
+    } catch (error) {
+      console.error("Export error:", error);
+      showAlert("Gagal Ekspor", "Terjadi kesalahan saat mengekspor dokumen.");
     }
-
-    // PDF / WORD Simulation
-    const title =
-      format === "WORD" ? "Ekspor Word Berhasil" : "Ekspor PDF Berhasil";
-    const desc =
-      format === "WORD"
-        ? "File Word (.docx) siap diunduh! Semua butir soal remix Anda telah diformat dengan layout standar Microsoft Word."
-        : "File PDF (.pdf) siap diunduh! Semua butir soal remix Anda telah dikompresi ke format cetak rapi.";
-
-    showAlert(title, desc);
   };
 
   return (

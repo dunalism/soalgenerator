@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { useCart, CartItem } from "@/lib/cart-context";
+import { downloadAsWord, openPrintLayout } from "@/lib/export-utils";
 
 interface ReviewStepProps {
   questions: Question[];
@@ -60,10 +61,16 @@ export function ReviewStep({
   };
 
   const handleExport = (format: "PDF" | "WORD" | "PRINT") => {
-    showAlert(
-      "Ekspor Berhasil",
-      `Asesmen berhasil diekspor ke format: ${format}!`,
-    );
+    try {
+      if (format === "WORD") {
+        downloadAsWord(questions, title || "Lembar Soal");
+      } else {
+        openPrintLayout(questions, title || "Lembar Soal");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      showAlert("Gagal Ekspor", "Terjadi kesalahan saat mengekspor dokumen.");
+    }
   };
 
   return (
