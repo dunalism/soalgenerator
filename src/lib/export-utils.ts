@@ -1,3 +1,17 @@
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Run,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  BorderStyle,
+  AlignmentType,
+  PageBreak,
+} from "docx";
+
 export interface ExportQuestion {
   id: string;
   questionText: string;
@@ -472,34 +486,676 @@ export function generateAssessmentHtml(
   `;
 }
 
-// Download the generated HTML as Microsoft Word format (.doc) optimized for Print Layout
+function cleanHtml(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/<\/?[^>]+(>|$)/g, "") // Hapus semua tag HTML
+    .replace(/&nbsp;/g, " ")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/&/g, "&")
+    .replace(/"/g, '"');
+}
+
+// Download the generated HTML as Microsoft Word format (.docx) using docx.js
 export function downloadAsWord(
   questions: ExportQuestion[],
   title: string = "Lembar Soal",
 ) {
   const displayTitle = title && title.trim() ? title : "Lembar Soal";
-  const htmlContent = generateAssessmentHtml(questions, displayTitle, true);
 
-  // Create blob with word MIME-type
-  const blob = new Blob(["\ufeff" + htmlContent], {
-    type: "application/msword;charset=utf-8",
+  // Group questions by type
+  const mcQs = questions.filter((q) => q.type === "MULTIPLE_CHOICE");
+  const tfQs = questions.filter((q) => q.type === "TRUE_FALSE");
+  const matchQs = questions.filter((q) => q.type === "MATCHING");
+  const essayQs = questions.filter((q) => q.type === "SHORT_ANSWER");
+
+  const children: (Paragraph | Table)[] = [];
+
+  // 1. Header Utama (Times New Roman, Bold, 16pt = size 32)
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new Run({
+          text: displayTitle.toUpperCase(),
+          bold: true,
+          size: 32, // 16pt
+        }),
+      ],
+      spacing: { after: 120 },
+    }),
+  );
+
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new Run({
+          text: "Dibuat Otomatis Menggunakan Asisten AI SoalGenerator Pintar",
+          italics: true,
+          size: 20, // 10pt
+        }),
+      ],
+      spacing: { after: 360 },
+    }),
+  );
+
+  // Border pemisah kop (double line border)
+  children.push(
+    new Paragraph({
+      border: {
+        bottom: {
+          style: BorderStyle.DOUBLE,
+          size: 24, // 3pt
+          color: "000000",
+          space: 1,
+        },
+      },
+      spacing: { after: 360 },
+    }),
+  );
+
+  // Helper untuk membuat section header
+  function addSectionHeader(
+    letter: string,
+    titleText: string,
+    instruction: string,
+  ) {
+    children.push(
+      new Paragraph({
+        children: [
+          new Run({
+            text: `BAGIAN ${letter}: ${titleText.toUpperCase()}`,
+            bold: true,
+            size: 24, // 12pt
+          }),
+        ],
+        spacing: { before: 240, after: 60 },
+        keepNext: true,
+      }),
+    );
+    children.push(
+      new Paragraph({
+        children: [
+          new Run({
+            text: `"${instruction}"`,
+            italics: true,
+            size: 24, // 12pt
+          }),
+        ],
+        spacing: { after: 240 },
+        keepNext: true,
+      }),
+    );
+  }
+
+  // --- BAGIAN A: PILIHAN GANDA ---
+  if (mcQs.length > 0) {
+    addSectionHeader(
+      "A",
+      "Pilihan Ganda",
+      "Pilihlah salah satu jawaban yang paling tepat!",
+    );
+
+    mcQs.forEach((q, idx) => {
+      // Pertanyaan
+      children.push(
+        new Paragraph({
+          children: [
+            new Run({ text: `${idx + 1}.\t`, bold: false, size: 24 }),
+            new Run({ text: cleanHtml(q.questionText), size: 24 }),
+          ],
+          indent: { left: 432, hanging: 432 },
+          spacing: { before: 120, after: 120, line: 360 }, // 1.5 line spacing
+          keepNext: true,
+        }),
+      );
+
+      // Render Pilihan Ganda
+      const hasLongOption = q.options.some((opt) => opt.optionText.length > 27);
+
+      if (hasLongOption) {
+        // Layout Vertikal (1 Kolom)
+        q.options.forEach((opt, optIdx) => {
+          const letter = String.fromCharCode(97 + optIdx); // a, b, c, d, e
+          children.push(
+            new Paragraph({
+              children: [
+                new Run({ text: `${letter}.\t`, size: 24 }),
+                new Run({ text: cleanHtml(opt.optionText), size: 24 }),
+              ],
+              indent: { left: 720, hanging: 288 }, // Sejajar dengan teks pertanyaan (left 432), lalu menjorok ke kanan
+              spacing: { after: 60, line: 360 },
+            }),
+          );
+        });
+      } else {
+        // Layout 2 Kolom Sejajar menggunakan objek Table borderless
+        const optsCount = q.options.length;
+        const leftCount = optsCount === 5 ? 3 : Math.ceil(optsCount / 2);
+
+        const leftColParagraphs: Paragraph[] = [];
+        const rightColParagraphs: Paragraph[] = [];
+
+        // Kolom Kiri (a, b, c)
+        for (let i = 0; i < leftCount; i++) {
+          const letter = String.fromCharCode(97 + i);
+          leftColParagraphs.push(
+            new Paragraph({
+              children: [
+                new Run({ text: `${letter}.\t`, size: 24 }),
+                new Run({ text: cleanHtml(q.options[i].optionText), size: 24 }),
+              ],
+              indent: { left: 288, hanging: 288 },
+              spacing: { after: 60, line: 360 },
+            }),
+          );
+        }
+
+        // Kolom Kanan (d, e)
+        for (let i = leftCount; i < optsCount; i++) {
+          const letter = String.fromCharCode(97 + i);
+          rightColParagraphs.push(
+            new Paragraph({
+              children: [
+                new Run({ text: `${letter}.\t`, size: 24 }),
+                new Run({ text: cleanHtml(q.options[i].optionText), size: 24 }),
+              ],
+              indent: { left: 288, hanging: 288 },
+              spacing: { after: 60, line: 360 },
+            }),
+          );
+        }
+
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+              insideHorizontal: { style: BorderStyle.NONE },
+              insideVertical: { style: BorderStyle.NONE },
+            },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({
+                    width: { size: 50, type: WidthType.PERCENTAGE },
+                    children: leftColParagraphs,
+                  }),
+                  new TableCell({
+                    width: { size: 50, type: WidthType.PERCENTAGE },
+                    children: rightColParagraphs,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        );
+
+        // Tambah spasi setelah tabel pilihan ganda
+        children.push(
+          new Paragraph({
+            children: [],
+            spacing: { after: 120 },
+          }),
+        );
+      }
+    });
+  }
+
+  // --- BAGIAN B: BENAR/SALAH ---
+  if (tfQs.length > 0) {
+    addSectionHeader(
+      "B",
+      "Benar/Salah",
+      "Lingkarilah huruf B jika pernyataan benar atau S jika salah!",
+    );
+
+    tfQs.forEach((q, idx) => {
+      // Menggunakan Table borderless agar tanda [ B - S ] berbaris rapi di sebelah kanan
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.NONE },
+            bottom: { style: BorderStyle.NONE },
+            left: { style: BorderStyle.NONE },
+            right: { style: BorderStyle.NONE },
+            insideHorizontal: { style: BorderStyle.NONE },
+            insideVertical: { style: BorderStyle.NONE },
+          },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 85, type: WidthType.PERCENTAGE },
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new Run({ text: `${idx + 1}.\t`, size: 24 }),
+                        new Run({ text: cleanHtml(q.questionText), size: 24 }),
+                      ],
+                      indent: { left: 432, hanging: 432 },
+                      spacing: { line: 360 },
+                    }),
+                  ],
+                }),
+                new TableCell({
+                  width: { size: 15, type: WidthType.PERCENTAGE },
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new Run({ text: "[ B  -  S ]", bold: true, size: 24 }),
+                      ],
+                      alignment: AlignmentType.RIGHT,
+                      spacing: { line: 360 },
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      );
+
+      // Spasi setelah setiap nomor Benar/Salah
+      children.push(
+        new Paragraph({
+          children: [],
+          spacing: { after: 120 },
+        }),
+      );
+    });
+  }
+
+  // --- BAGIAN C: MENJODOHKAN ---
+  if (matchQs.length > 0) {
+    addSectionHeader(
+      "C",
+      "Menjodohkan",
+      "Pasangkanlah pernyataan di Kolom Kiri dengan jawaban yang sesuai di Kolom Kanan!",
+    );
+
+    const originalAnswers = matchQs.map((q) => q.answerKey);
+    const shuffledAnswers = shuffleArray(originalAnswers);
+
+    const tableRows: TableRow[] = [];
+
+    // Header Tabel
+    tableRows.push(
+      new TableRow({
+        tableHeader: true,
+        children: [
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            shading: { fill: "F3F4F6" },
+            children: [
+              new Paragraph({
+                children: [
+                  new Run({
+                    text: "KOLOM KIRI (PERNYATAAN)",
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 120, after: 120 },
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            shading: { fill: "F3F4F6" },
+            children: [
+              new Paragraph({
+                children: [
+                  new Run({
+                    text: "KOLOM KANAN (JAWABAN)",
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 120, after: 120 },
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    // Baris-baris tabel
+    matchQs.forEach((q, idx) => {
+      const letter = String.fromCharCode(65 + idx); // A, B, C, D...
+      const rightOptionText = shuffledAnswers[idx];
+
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({
+                  children: [
+                    new Run({ text: `${idx + 1}.\t`, size: 24 }),
+                    new Run({ text: cleanHtml(q.questionText), size: 24 }),
+                  ],
+                  indent: { left: 432, hanging: 432 },
+                  spacing: { before: 120, after: 120, line: 360 },
+                }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({
+                  children: [
+                    new Run({ text: `${letter}.\t`, bold: true, size: 24 }),
+                    new Run({ text: cleanHtml(rightOptionText), size: 24 }),
+                  ],
+                  indent: { left: 432, hanging: 432 },
+                  spacing: { before: 120, after: 120, line: 360 },
+                }),
+              ],
+            }),
+          ],
+        }),
+      );
+    });
+
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+          bottom: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+          left: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+          right: { style: BorderStyle.SINGLE, size: 4, color: "000000" },
+          insideHorizontal: {
+            style: BorderStyle.SINGLE,
+            size: 4,
+            color: "000000",
+          },
+          insideVertical: {
+            style: BorderStyle.SINGLE,
+            size: 4,
+            color: "000000",
+          },
+        },
+        rows: tableRows,
+      }),
+    );
+
+    // Spasi setelah tabel menjodohkan
+    children.push(
+      new Paragraph({
+        children: [],
+        spacing: { after: 240 },
+      }),
+    );
+  }
+
+  // --- BAGIAN D: URAIAN/ESAI ---
+  if (essayQs.length > 0) {
+    addSectionHeader(
+      "D",
+      "Uraian/Esai",
+      "Jawablah pertanyaan berikut dengan jelas!",
+    );
+
+    essayQs.forEach((q, idx) => {
+      children.push(
+        new Paragraph({
+          children: [
+            new Run({ text: `${idx + 1}.\t`, size: 24 }),
+            new Run({ text: cleanHtml(q.questionText), size: 24 }),
+          ],
+          indent: { left: 432, hanging: 432 },
+          spacing: { before: 120, after: 120, line: 360 },
+        }),
+      );
+    });
+  }
+
+  // --- 5. PAGE BREAK RESMI WORD UNTUK KUNCI JAWABAN ---
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+
+  // --- KUNCI JAWABAN (HALAMAN BARU) ---
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new Run({
+          text: "KUNCI JAWABAN",
+          bold: true,
+          size: 32, // 16pt
+        }),
+      ],
+      spacing: { after: 120 },
+    }),
+  );
+
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new Run({
+          text: `Lembar Kunci Jawaban untuk: ${displayTitle}`,
+          italics: true,
+          size: 20, // 10pt
+        }),
+      ],
+      spacing: { after: 360 },
+    }),
+  );
+
+  children.push(
+    new Paragraph({
+      border: {
+        bottom: {
+          style: BorderStyle.DOUBLE,
+          size: 24, // 3pt
+          color: "000000",
+          space: 1,
+        },
+      },
+      spacing: { after: 360 },
+    }),
+  );
+
+  // Kunci Jawaban Pilihan Ganda
+  if (mcQs.length > 0) {
+    children.push(
+      new Paragraph({
+        children: [
+          new Run({
+            text: "Kunci Jawaban Bagian A: Pilihan Ganda",
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { before: 240, after: 120 },
+        keepNext: true,
+      }),
+    );
+
+    mcQs.forEach((q, idx) => {
+      const correctIdx = q.options.findIndex((opt) => opt.isCorrect);
+      const letter =
+        correctIdx !== -1 ? String.fromCharCode(97 + correctIdx) : "a";
+      children.push(
+        new Paragraph({
+          children: [
+            new Run({ text: `${idx + 1}.\t`, bold: true, size: 24 }),
+            new Run({
+              text: `${letter} (${cleanHtml(q.answerKey)})`,
+              size: 24,
+            }),
+          ],
+          indent: { left: 432, hanging: 432 },
+          spacing: { after: 60, line: 360 },
+        }),
+      );
+    });
+  }
+
+  // Kunci Jawaban Benar/Salah
+  if (tfQs.length > 0) {
+    children.push(
+      new Paragraph({
+        children: [
+          new Run({
+            text: "Kunci Jawaban Bagian B: Benar/Salah",
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { before: 240, after: 120 },
+        keepNext: true,
+      }),
+    );
+
+    tfQs.forEach((q, idx) => {
+      children.push(
+        new Paragraph({
+          children: [
+            new Run({ text: `${idx + 1}.\t`, bold: true, size: 24 }),
+            new Run({ text: cleanHtml(q.answerKey), size: 24 }),
+          ],
+          indent: { left: 432, hanging: 432 },
+          spacing: { after: 60, line: 360 },
+        }),
+      );
+    });
+  }
+
+  // Kunci Jawaban Menjodohkan
+  if (matchQs.length > 0) {
+    children.push(
+      new Paragraph({
+        children: [
+          new Run({
+            text: "Kunci Jawaban Bagian C: Menjodohkan",
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { before: 240, after: 120 },
+        keepNext: true,
+      }),
+    );
+
+    const originalAnswers = matchQs.map((q) => q.answerKey);
+    const shuffledAnswers = shuffleArray(originalAnswers);
+
+    matchQs.forEach((q, idx) => {
+      const correctIdxInShuffled = shuffledAnswers.findIndex(
+        (ans) => ans === q.answerKey,
+      );
+      const letter =
+        correctIdxInShuffled !== -1
+          ? String.fromCharCode(65 + correctIdxInShuffled)
+          : "?";
+
+      children.push(
+        new Paragraph({
+          children: [
+            new Run({ text: `No ${idx + 1}.\t`, bold: true, size: 24 }),
+            new Run({ text: `Menjodohkan dengan huruf `, size: 24 }),
+            new Run({ text: letter, bold: true, size: 24 }),
+            new Run({ text: ` (${cleanHtml(q.answerKey)})`, size: 24 }),
+          ],
+          indent: { left: 432, hanging: 432 },
+          spacing: { after: 60, line: 360 },
+        }),
+      );
+    });
+  }
+
+  // Kunci Jawaban Esai
+  if (essayQs.length > 0) {
+    children.push(
+      new Paragraph({
+        children: [
+          new Run({
+            text: "Kunci Jawaban Bagian D: Uraian/Esai",
+            bold: true,
+            size: 24,
+          }),
+        ],
+        spacing: { before: 240, after: 120 },
+        keepNext: true,
+      }),
+    );
+
+    essayQs.forEach((q, idx) => {
+      children.push(
+        new Paragraph({
+          children: [
+            new Run({ text: `No ${idx + 1}.\t`, bold: true, size: 24 }),
+            new Run({ text: cleanHtml(q.answerKey), italics: true, size: 24 }),
+          ],
+          indent: { left: 432, hanging: 432 },
+          spacing: { after: 120, line: 360 },
+        }),
+      );
+    });
+  }
+
+  // Membuat Document asli docx
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Times New Roman",
+            size: 24, // 12pt
+          },
+        },
+      },
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: 1134, // ~2cm
+              bottom: 1134,
+              left: 1134,
+              right: 1134,
+            },
+          },
+        },
+        children: children,
+      },
+    ],
   });
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
+  // Export as .docx via Packer
+  Packer.toBlob(doc)
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
 
-  // Format file name
-  const safeTitle = displayTitle
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-  a.download = `soal-${safeTitle || "export"}.doc`;
+      const safeTitle = displayTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      a.download = `soal-${safeTitle || "export"}.docx`;
 
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    })
+    .catch((error) => {
+      console.error("Gagal mengekspor dokumen .docx:", error);
+    });
 }
 
 // Open the print layout in a new window
