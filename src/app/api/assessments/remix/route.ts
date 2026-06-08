@@ -67,7 +67,7 @@ export async function POST(request: Request) {
           questionType = "SHORT_ANSWER";
       }
 
-      // 2. Create the new parent Assessment record
+      // 2. Create the parent Assessment and all questions/options in ONE SINGLE query!
       const assessment = await tx.assessment.create({
         data: {
           userId,
@@ -76,34 +76,27 @@ export async function POST(request: Request) {
           questionType: questionType,
           questionCount: originalQuestions.length,
           difficulty: "MEDIUM",
+          questions: {
+            create: originalQuestions.map((origQ, i) => ({
+              questionText: origQ.questionText,
+              type: origQ.type,
+              order: i + 1,
+              answerKey: origQ.answerKey,
+              options:
+                origQ.type === "MULTIPLE_CHOICE" &&
+                origQ.options &&
+                origQ.options.length > 0
+                  ? {
+                      create: origQ.options.map((opt) => ({
+                        optionText: opt.optionText,
+                        isCorrect: opt.isCorrect,
+                      })),
+                    }
+                  : undefined,
+            })),
+          },
         },
       });
-
-      // 3. Clone each question & options
-      for (let i = 0; i < originalQuestions.length; i++) {
-        const origQ = originalQuestions[i];
-
-        await tx.question.create({
-          data: {
-            assessmentId: assessment.id,
-            questionText: origQ.questionText,
-            type: origQ.type,
-            order: i + 1,
-            answerKey: origQ.answerKey,
-            options:
-              origQ.type === "MULTIPLE_CHOICE" &&
-              origQ.options &&
-              origQ.options.length > 0
-                ? {
-                    create: origQ.options.map((opt) => ({
-                      optionText: opt.optionText,
-                      isCorrect: opt.isCorrect,
-                    })),
-                  }
-                : undefined,
-          },
-        });
-      }
 
       return assessment;
     });

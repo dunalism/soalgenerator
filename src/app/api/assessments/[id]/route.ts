@@ -66,40 +66,47 @@ export async function PUT(
       );
     }
 
-    // Wrap in transaction: clear old questions and insert new ones
+    // Wrap in transaction: clear old questions and insert new ones in ONE nested query
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Delete all existing questions (options are deleted automatically via Cascade delete)
       await tx.question.deleteMany({
         where: { assessmentId: id },
       });
 
-      // 2. Re-create updated questions with their options
+      // 2. Re-create updated questions with their options atomically using nested write on Assessment
       if (questions && Array.isArray(questions)) {
-        for (let i = 0; i < questions.length; i++) {
-          const q = questions[i];
-          await tx.question.create({
-            data: {
-              assessmentId: id,
-              questionText: q.questionText,
-              type: q.type as "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER",
-              order: i + 1,
-              answerKey: q.answerKey,
-              options:
-                q.type === "MULTIPLE_CHOICE" &&
-                q.options &&
-                Array.isArray(q.options)
-                  ? {
-                      create: q.options.map(
-                        (opt: { optionText: string; isCorrect: boolean }) => ({
-                          optionText: opt.optionText,
-                          isCorrect: opt.isCorrect,
-                        }),
-                      ),
-                    }
-                  : undefined,
+        await tx.assessment.update({
+          where: { id },
+          data: {
+            questions: {
+              create: questions.map((q, i) => ({
+                questionText: q.questionText,
+                type: q.type as
+                  | "MULTIPLE_CHOICE"
+                  | "TRUE_FALSE"
+                  | "SHORT_ANSWER",
+                order: i + 1,
+                answerKey: q.answerKey,
+                options:
+                  q.type === "MULTIPLE_CHOICE" &&
+                  q.options &&
+                  Array.isArray(q.options)
+                    ? {
+                        create: q.options.map(
+                          (opt: {
+                            optionText: string;
+                            isCorrect: boolean;
+                          }) => ({
+                            optionText: opt.optionText,
+                            isCorrect: opt.isCorrect,
+                          }),
+                        ),
+                      }
+                    : undefined,
+              })),
             },
-          });
-        }
+          },
+        });
       }
     });
 
