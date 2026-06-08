@@ -124,10 +124,10 @@ export function InputStep({
           <div className="space-y-2">
             <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
               <Clipboard className="h-4 w-4 text-primary" />
-              Tempelkan Teks Materi Pelajaran
+              Tempelkan Materi Pelajaran atau Tuliskan Perintah (Prompt)
             </label>
             <Textarea
-              placeholder="Tempelkan bab materi, rangkuman, artikel, atau modul ajar panjang Anda di sini..."
+              placeholder="Tempelkan teks materi pelajaran Anda, ATAU tuliskan perintah langsung seperti: 'Buat soal ulangan matematika materi pecahan kelas 7 semester 1'..."
               className="min-h-[250px] resize-y p-4"
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
