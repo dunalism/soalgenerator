@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,72 +36,79 @@ export async function POST(request: Request) {
       );
     }
 
-    // Start a transaction to ensure atomic creation of Assessment and Questions/Options
-    const newAssessment = await prisma.$transaction(async (tx) => {
-      // 1. Fetch original questions with options to clone them
-      const originalQuestions = await tx.question.findMany({
-        where: {
-          id: { in: questionIds },
-        },
-        include: {
-          options: true,
-        },
-      });
-
-      if (originalQuestions.length === 0) {
-        throw new Error("Butir soal yang dipilih tidak ditemukan di database.");
-      }
-
-      // Determine overall question type based on selected questions
-      const uniqueTypes = Array.from(
-        new Set(originalQuestions.map((q) => q.type)),
-      );
-      let questionType:
-        | "MULTIPLE_CHOICE"
-        | "TRUE_FALSE"
-        | "SHORT_ANSWER"
-        | "MIXED" = "MIXED";
-      if (uniqueTypes.length === 1) {
-        if (uniqueTypes[0] === "MULTIPLE_CHOICE")
-          questionType = "MULTIPLE_CHOICE";
-        else if (uniqueTypes[0] === "TRUE_FALSE") questionType = "TRUE_FALSE";
-        else if (uniqueTypes[0] === "SHORT_ANSWER")
-          questionType = "SHORT_ANSWER";
-      }
-
-      // 2. Create the parent Assessment and all questions/options in ONE SINGLE query!
-      const assessment = await tx.assessment.create({
-        data: {
-          userId,
-          inputType: "TEXT",
-          title: title.trim(),
-          questionType: questionType,
-          questionCount: originalQuestions.length,
-          difficulty: "MEDIUM",
-          questions: {
-            create: originalQuestions.map((origQ, i) => ({
-              questionText: origQ.questionText,
-              type: origQ.type,
-              order: i + 1,
-              answerKey: origQ.answerKey,
-              options:
-                origQ.type === "MULTIPLE_CHOICE" &&
-                origQ.options &&
-                origQ.options.length > 0
-                  ? {
-                      create: origQ.options.map((opt) => ({
-                        optionText: opt.optionText,
-                        isCorrect: opt.isCorrect,
-                      })),
-                    }
-                  : undefined,
-            })),
-          },
-        },
-      });
-
-      return assessment;
+    // 1. Ambil data soal asli beserta opsinya dalam 1 kueri
+    const originalQuestions = await prisma.question.findMany({
+      where: { id: { in: questionIds } },
+      include: { options: true },
     });
+
+    if (originalQuestions.length === 0) {
+      throw new Error("Butir soal yang dipilih tidak ditemukan di database.");
+    }
+
+    // Tentukan tipe soal kumulatif (MULTIPLE_CHOICE, TRUE_FALSE, dll)
+    const uniqueTypes = Array.from(
+      new Set(originalQuestions.map((q) => q.type)),
+    );
+    const questionType = uniqueTypes.length === 1 ? uniqueTypes[0] : "MIXED";
+
+    // 2. Jalankan transaksi FLAT BULK INSERT (Sangat Ringan & Cepat)
+    const newAssessment = await prisma.$transaction(
+      async (tx) => {
+        // Operasi A: Buat data induk Assessment
+        const assessment = await tx.assessment.create({
+          data: {
+            userId,
+            inputType: "TEXT",
+            title: title.trim(),
+            questionType,
+            questionCount: originalQuestions.length,
+            difficulty: "MEDIUM",
+          },
+        });
+
+        const preparedQuestions: Prisma.QuestionCreateManyInput[] = [];
+        const preparedOptions: Prisma.OptionCreateManyInput[] = [];
+
+        // Operasi B: Petakan data menggunakan forEach biasa (bukan loop asynchronous)
+        originalQuestions.forEach((origQ, i) => {
+          const newQuestionId = crypto.randomUUID(); // Buat ID manual di server Next.js
+
+          preparedQuestions.push({
+            id: newQuestionId,
+            assessmentId: assessment.id,
+            questionText: origQ.questionText,
+            type: origQ.type,
+            order: i + 1,
+            answerKey: origQ.answerKey,
+          });
+
+          if (origQ.type === "MULTIPLE_CHOICE" && origQ.options) {
+            origQ.options.forEach((opt) => {
+              preparedOptions.push({
+                questionId: newQuestionId, // Hubungkan langsung dengan ID soal baru di atas
+                optionText: opt.optionText,
+                isCorrect: opt.isCorrect,
+              });
+            });
+          }
+        });
+
+        // Operasi C: Tembak kueri massal ke MySQL (Hanya 2 kueri flat tambahan)
+        if (preparedQuestions.length > 0) {
+          await tx.question.createMany({ data: preparedQuestions });
+        }
+
+        if (preparedOptions.length > 0) {
+          await tx.option.createMany({ data: preparedOptions });
+        }
+
+        return assessment;
+      },
+      {
+        timeout: 10000,
+      },
+    );
 
     return NextResponse.json({ success: true, id: newAssessment.id });
   } catch (error: unknown) {

@@ -5,6 +5,19 @@ import { Prisma } from "@prisma/client";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Definisikan interface struktur data yang diterima dari request body frontend
+interface IncomingOption {
+  optionText: string;
+  isCorrect: boolean;
+}
+
+interface IncomingQuestion {
+  questionText: string;
+  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
+  answerKey: string;
+  options?: IncomingOption[];
+}
+
 // GET - Fetch Assessment by ID with Questions & Options
 export async function GET(
   request: Request,
@@ -52,9 +65,9 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { questions } = body; // Array of edited Question objects
+    const { questions } = body; // Array berisi objek soal hasil edit
 
-    // Verify assessment exists
+    // 1. Validasi keberadaan assessment
     const assessmentExists = await prisma.assessment.findUnique({
       where: { id },
     });
@@ -66,49 +79,65 @@ export async function PUT(
       );
     }
 
-    // Wrap in transaction: clear old questions and insert new ones in ONE nested query
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // 1. Delete all existing questions (options are deleted automatically via Cascade delete)
-      await tx.question.deleteMany({
-        where: { assessmentId: id },
-      });
-
-      // 2. Re-create updated questions with their options atomically using nested write on Assessment
-      if (questions && Array.isArray(questions)) {
-        await tx.assessment.update({
-          where: { id },
-          data: {
-            questions: {
-              create: questions.map((q, i) => ({
-                questionText: q.questionText,
-                type: q.type as
-                  | "MULTIPLE_CHOICE"
-                  | "TRUE_FALSE"
-                  | "SHORT_ANSWER",
-                order: i + 1,
-                answerKey: q.answerKey,
-                options:
-                  q.type === "MULTIPLE_CHOICE" &&
-                  q.options &&
-                  Array.isArray(q.options)
-                    ? {
-                        create: q.options.map(
-                          (opt: {
-                            optionText: string;
-                            isCorrect: boolean;
-                          }) => ({
-                            optionText: opt.optionText,
-                            isCorrect: opt.isCorrect,
-                          }),
-                        ),
-                      }
-                    : undefined,
-              })),
-            },
-          },
+    await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        // Langkah A: Hapus semua pertanyaan lama (Opsi terhapus otomatis via Cascade Delete)
+        await tx.question.deleteMany({
+          where: { assessmentId: id },
         });
-      }
-    });
+
+        if (questions && Array.isArray(questions)) {
+          // MENGGUNAKAN TIPE DATA BAWAAN PRISMA (Menghilangkan any[])
+          const preparedQuestions: Prisma.QuestionCreateManyInput[] = [];
+          const preparedOptions: Prisma.OptionCreateManyInput[] = [];
+
+          // Langkah B: Petakan data ke dalam array flat & generate ID secara manual
+          (questions as IncomingQuestion[]).forEach((q, index) => {
+            const generatedQuestionId = crypto.randomUUID(); // Buat UUID di server
+
+            preparedQuestions.push({
+              id: generatedQuestionId, // Pasang ID manual
+              assessmentId: id,
+              questionText: q.questionText,
+              type: q.type, // Sudah aman sesuai Enum QuestionType Prisma
+              order: index + 1,
+              answerKey: q.answerKey,
+            });
+
+            // Jika tipe pilihan ganda, kumpulkan semua opsinya ke array terpisah
+            if (
+              q.type === "MULTIPLE_CHOICE" &&
+              q.options &&
+              Array.isArray(q.options)
+            ) {
+              q.options.forEach((opt: IncomingOption) => {
+                preparedOptions.push({
+                  questionId: generatedQuestionId, // Hubungkan ke ID soal di atas
+                  optionText: opt.optionText,
+                  isCorrect: opt.isCorrect,
+                });
+              });
+            }
+          });
+
+          // Langkah C: Eksekusi Bulk Insert (Hanya 2 hit jaringan untuk simpan semuanya)
+          if (preparedQuestions.length > 0) {
+            await tx.question.createMany({
+              data: preparedQuestions,
+            });
+          }
+
+          if (preparedOptions.length > 0) {
+            await tx.option.createMany({
+              data: preparedOptions,
+            });
+          }
+        }
+      },
+      {
+        timeout: 10000,
+      },
+    );
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
