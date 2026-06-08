@@ -107,7 +107,7 @@ export function InputStep({
             className="flex items-center gap-2 h-10 font-semibold"
           >
             <FileText className="h-4 w-4" />
-            <span>Salin & Tempel Teks</span>
+            <span>Masukkan Teks</span>
           </Button>
           <Button
             onClick={() => setInputType("IMAGE")}
@@ -115,7 +115,7 @@ export function InputStep({
             className="flex items-center gap-2 h-10 font-semibold"
           >
             <ImageIcon className="h-4 w-4" />
-            <span>Unggah Gambar / OCR</span>
+            <span>Unggah Gambar</span>
           </Button>
         </div>
 

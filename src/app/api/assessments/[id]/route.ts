@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,7 +67,7 @@ export async function PUT(
     }
 
     // Wrap in transaction: clear old questions and insert new ones
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Delete all existing questions (options are deleted automatically via Cascade delete)
       await tx.question.deleteMany({
         where: { assessmentId: id },
