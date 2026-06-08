@@ -1,13 +1,10 @@
-import Link from "next/navigation";
 import {
   Sparkles,
   Clock,
   FileDown,
-  BookOpen,
   ShoppingCart,
   CheckCircle2,
   XCircle,
-  ChevronRight,
   ArrowRight,
   UserCheck,
   Brain,

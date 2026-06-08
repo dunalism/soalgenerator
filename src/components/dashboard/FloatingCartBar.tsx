@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
   Sparkles,
