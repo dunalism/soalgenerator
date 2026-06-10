@@ -179,6 +179,58 @@ export async function POST(request: Request) {
     // 1. Call Gemini AI first to generate structured questions
     const genAI = new GoogleGenerativeAI(apiKey);
 
+    // 1. ISOLASI INSTRUKSI DAN ENUM SECARA DINAMIS
+    let typeSpecificInstruction = "";
+    let allowedTypes: string[] = [
+      "MULTIPLE_CHOICE",
+      "TRUE_FALSE",
+      "SHORT_ANSWER",
+      "MATCHING",
+    ];
+    let optionsDescription = `Pilihan jawaban (wajib berisi tepat ${targetOptionsCount} pilihan jika tipe MULTIPLE_CHOICE, selain itu wajib kosongkan/array kosong [])`;
+    let answerKeyDescription = "Kunci jawaban yang tepat.";
+
+    if (questionType === "MULTIPLE_CHOICE") {
+      allowedTypes = ["MULTIPLE_CHOICE"]; // Mengunci Schema dari pembajakan tipe soal
+      optionsDescription = `Wajib menghasilkan array berisi TEPAT ${targetOptionsCount} objek pilihan jawaban. Hanya boleh ada 1 pilihan yang benar ('isCorrect' bernilai true).`;
+      answerKeyDescription =
+        "Wajib diisi dengan teks 'optionText' dari pilihan yang benar (harus sama persis).";
+      typeSpecificInstruction = `Anda WAJIB HANYA menghasilkan soal pilihan ganda (MULTIPLE_CHOICE). Setiap soal wajib memiliki tepat ${targetOptionsCount} pilihan jawaban. DILARANG KERAS menghasilkan tipe soal selain MULTIPLE_CHOICE.`;
+    } else if (questionType === "TRUE_FALSE") {
+      allowedTypes = ["TRUE_FALSE"];
+      optionsDescription =
+        "Wajib berupa array kosong []. Jangan isi apa pun di sini.";
+      answerKeyDescription =
+        "Wajib berupa string teks 'Benar' atau 'Salah' saja.";
+      typeSpecificInstruction = `Anda WAJIB HANYA menghasilkan soal Benar/Salah (TRUE_FALSE). Field 'options' wajib berupa array kosong [], dan 'answerKey' harus diisi teks 'Benar' atau 'Salah'. DILARANG KERAS menghasilkan tipe soal selain TRUE_FALSE.`;
+    } else if (questionType === "SHORT_ANSWER") {
+      allowedTypes = ["SHORT_ANSWER"];
+      optionsDescription =
+        "Wajib berupa array kosong []. Jangan isi apa pun di sini.";
+      answerKeyDescription =
+        "Berisi teks jawaban singkat dan ringkas yang tepat berdasarkan materi.";
+      typeSpecificInstruction = `Anda WAJIB HANYA menghasilkan soal isian/jawaban singkat (SHORT_ANSWER). Field 'options' wajib berupa array kosong [], dan 'answerKey' berisi teks jawaban singkat. DILARANG KERAS menghasilkan tipe soal selain SHORT_ANSWER.`;
+    } else if (questionType === "MATCHING") {
+      allowedTypes = ["MATCHING"];
+      optionsDescription =
+        "Wajib berupa array kosong []. Jangan isi apa pun di sini.";
+      answerKeyDescription =
+        "Berisi teks definisi/pasangan menjodohkan yang tepat di kolom kanan.";
+      typeSpecificInstruction = `Anda WAJIB HANYA menghasilkan soal Menjodohkan (MATCHING). 'questionText' berisi istilah/premis (kolom kiri), 'options' wajib berupa array kosong [], dan 'answerKey' berisi definisi pasangannya yang tepat (kolom kanan). DILARANG KERAS menghasilkan tipe soal selain MATCHING.`;
+    } else if (questionType === "MIXED") {
+      const mc = Number(mixedMcCount) || 0;
+      const tf = Number(mixedTfCount) || 0;
+      const sa = Number(mixedSaCount) || 0;
+      const match = Number(mixedMatchCount) || 0;
+      typeSpecificInstruction = `Anda WAJIB menghasilkan komposisi tipe soal Campuran (MIXED) secara persis dengan rincian kuota berikut:
+      * Tepat ${mc} soal Pilihan Ganda (MULTIPLE_CHOICE) dengan ${targetOptionsCount} pilihan jawaban.
+      * Tepat ${tf} soal Benar/Salah (TRUE_FALSE).
+      * Tepat ${sa} soal Uraian/Esai (SHORT_ANSWER).
+      * Tepat ${match} soal Menjodohkan (MATCHING).
+      Pastikan jumlah total kombinasi di atas bernilai tepat ${questionCount} soal.`;
+    }
+
+    // 2. SCHEMA DIBENTUK SECARA DINAMIS BERDASARKAN FILTER DI ATAS
     const responseSchema: Schema = {
       type: SchemaType.OBJECT,
       properties: {
@@ -190,12 +242,13 @@ export async function POST(request: Request) {
               questionText: { type: SchemaType.STRING },
               type: {
                 type: SchemaType.STRING,
-                description:
-                  "Tipe soal: MULTIPLE_CHOICE, TRUE_FALSE, SHORT_ANSWER, atau MATCHING",
+                format: "enum",
+                enum: allowedTypes, // KUNCI UTAMA: Hanya enum yang diizinkan yang dikirim ke Gemini
+                description: `Tipe soal yang wajib digunakan: ${allowedTypes.join(", ")}`,
               },
               options: {
                 type: SchemaType.ARRAY,
-                description: `Pilihan jawaban (wajib ada tepat ${targetOptionsCount} pilihan jika tipe soal MULTIPLE_CHOICE, kosongkan jika TRUE_FALSE atau SHORT_ANSWER)`,
+                description: optionsDescription,
                 items: {
                   type: SchemaType.OBJECT,
                   properties: {
@@ -207,8 +260,7 @@ export async function POST(request: Request) {
               },
               answerKey: {
                 type: SchemaType.STRING,
-                description:
-                  "Kunci jawaban. Jika MULTIPLE_CHOICE, harus sama persis dengan optionText dari pilihan yang benar. Jika TRUE_FALSE, nilainya wajib berupa 'Benar' atau 'Salah'. Jika SHORT_ANSWER, berisi teks jawaban singkat.",
+                description: answerKeyDescription,
               },
             },
             required: ["questionText", "type", "answerKey"],
@@ -218,34 +270,15 @@ export async function POST(request: Request) {
       required: ["questions"],
     };
 
-    let mixedInstruction = "";
-    if (questionType === "MIXED") {
-      const mc = Number(mixedMcCount) || 0;
-      const tf = Number(mixedTfCount) || 0;
-      const sa = Number(mixedSaCount) || 0;
-      const match = Number(mixedMatchCount) || 0;
-      mixedInstruction = `   - Khusus untuk tipe 'MIXED' (Campuran), Anda WAJIB menghasilkan komposisi tipe soal berikut secara persis:
-     * Tepat ${mc} soal Pilihan Ganda (MULTIPLE_CHOICE) dengan ${targetOptionsCount} pilihan jawaban.
-     * Tepat ${tf} soal Benar/Salah (TRUE_FALSE).
-     * Tepat ${sa} soal Uraian/Esai (SHORT_ANSWER).
-     * Tepat ${match} soal Menjodohkan (MATCHING).
-     Pastikan jumlah total soal campuran yang Anda hasilkan bernilai tepat ${questionCount} soal sesuai aturan ini.`;
-    } else {
-      mixedInstruction = `   - Jika 'MIXED', hasilkan kombinasi seimbang dari tipe-tipe soal di atas (Pilihan Ganda dengan ${targetOptionsCount} pilihan, Benar/Salah, Uraian/Esai, dan Menjodohkan).`;
-    }
-
+    // 3. SYSTEM PROMPT BERSIH TANPA LOGIKA PERCABANGAN "JIKA"
     const systemPrompt = `Anda adalah seorang guru ahli pembuat asesmen pendidikan pintar.
 Tugas Anda adalah membuat soal ujian berkualitas tinggi berdasarkan materi input teks yang diberikan oleh pengguna.
 
 Aturan Pembuatan Soal:
-1. Jumlah soal yang harus dihasilkan: ${questionCount} soal.
+1. Jumlah soal yang harus dihasilkan: TEPAT ${questionCount} soal.
 2. Tingkat kesulitan soal: ${difficulty} (EASY: Fokus pada ingatan dan pemahaman dasar, MEDIUM: Fokus pada aplikasi dan analisis menengah, HARD: Fokus pada HOTS - Higher Order Thinking Skills, evaluasi, dan analisis mendalam).
-3. Tipe soal yang diminta: ${questionType}.
-   - Jika 'MULTIPLE_CHOICE', hasilkan HANYA soal pilihan ganda. Setiap soal wajib memiliki tepat ${targetOptionsCount} pilihan jawaban ('options') di mana hanya ada 1 pilihan yang benar ('isCorrect' bernilai true). 'answerKey' harus sama persis dengan teks pilihan yang benar tersebut.
-   - Jika 'TRUE_FALSE', hasilkan HANYA soal Benar/Salah. 'options' harus kosong, dan 'answerKey' harus berupa teks 'Benar' atau 'Salah'.
-   - Jika 'SHORT_ANSWER', hasilkan HANYA soal isian/jawaban singkat. 'options' must be empty, dan 'answerKey' berisi teks jawaban singkat yang tepat.
-   - Jika 'MATCHING', hasilkan HANYA soal Menjodohkan (Matching). 'questionText' berisi istilah/premis (di kolom kiri, misal: 'Oksigen'), 'options' wajib kosong, dan 'answerKey' berisi definisi/jawaban menjodohkannya yang tepat (di kolom kanan, misal: 'Gas yang dihirup manusia saat bernapas').
-${mixedInstruction}
+3. Aturan Mutlak Tipe Soal:
+${typeSpecificInstruction}
 4. Semua teks soal, pilihan jawaban, dan kunci jawaban harus ditulis menggunakan Bahasa Indonesia yang baik, benar, baku, dan sesuai dengan materi input.
 5. Hasilkan soal yang relevan, mendidik, dan terstruktur dengan baik sesuai dengan data materi.`;
 

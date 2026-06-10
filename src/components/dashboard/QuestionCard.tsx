@@ -15,19 +15,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 
-interface Option {
-  id: string;
-  optionText: string;
-  isCorrect: boolean;
-}
-
-export interface Question {
-  id: string;
-  questionText: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
-  options: Option[];
-  answerKey: string;
-}
+import { Option, Question } from "@/lib/types";
 
 interface QuestionCardProps {
   question: Question;

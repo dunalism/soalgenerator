@@ -24,39 +24,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export interface MatchingQuestion {
-  id: string;
-  questionText: string;
-}
-
-export interface Assessment {
-  id: string;
-  title?: string | null;
-  inputType: "TEXT" | "IMAGE";
-  rawInputText: string | null;
-  questionType: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MIXED";
-  questionCount: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD";
-  createdAt: string;
-  _count?: {
-    questions: number;
-  };
-  questions?: MatchingQuestion[];
-}
-
-interface Option {
-  id: string;
-  optionText: string;
-  isCorrect: boolean;
-}
-
-interface DetailedQuestion {
-  id: string;
-  questionText: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
-  options: Option[];
-  answerKey: string;
-}
+import {
+  Option,
+  Question as DetailedQuestion,
+  MatchingQuestion,
+  Assessment,
+} from "@/lib/types";
 
 interface AssessmentCardProps {
   assessment: Assessment;

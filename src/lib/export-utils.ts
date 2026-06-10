@@ -11,18 +11,7 @@ import {
   AlignmentType,
   PageBreak,
 } from "docx";
-
-export interface ExportQuestion {
-  id: string;
-  questionText: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
-  options: {
-    id: string;
-    optionText: string;
-    isCorrect: boolean;
-  }[];
-  answerKey: string;
-}
+import { ExportQuestion } from "@/lib/types";
 
 // Helper to shuffle an array
 function shuffleArray<T>(array: T[]): T[] {
