@@ -4,28 +4,9 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { ReviewStep } from "@/components/dashboard/ReviewStep";
 import { ProgressBar } from "@/components/dashboard/ProgressBar";
-import { Question } from "@/components/dashboard/QuestionCard";
 import { Loader2 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
-
-interface DBQuestion {
-  id: string;
-  questionText: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
-  options: {
-    id: string;
-    optionText: string;
-    isCorrect: boolean;
-  }[];
-  answerKey: string;
-}
-
-interface AssessmentData {
-  title?: string | null;
-  inputType: "TEXT" | "IMAGE";
-  questionType: string;
-  difficulty: string;
-}
+import { Assessment, Question } from "@/lib/types";
 
 interface AssessmentPageProps {
   params: Promise<{ id: string }>;
@@ -44,9 +25,7 @@ export default function AssessmentReviewPage({
 
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [assessmentData, setAssessmentData] = useState<AssessmentData | null>(
-    null,
-  );
+  const [assessmentData, setAssessmentData] = useState<Assessment | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [initialQuestions, setInitialQuestions] = useState<Question[]>([]);
 
@@ -65,7 +44,7 @@ export default function AssessmentReviewPage({
 
         // Map backend schema to client-side Question interface
         const mappedQuestions: Question[] = data.assessment.questions.map(
-          (q: DBQuestion) => ({
+          (q: Question) => ({
             id: q.id,
             questionText: q.questionText,
             type: q.type,

@@ -21,8 +21,7 @@ import { Button } from "@/components/ui/button";
 import { downloadAsWord, openPrintLayout } from "@/lib/export-utils";
 
 export function FloatingCartBar() {
-  const { selectedQuestions, clearCart, toggleQuestion, isSelected } =
-    useCart();
+  const { selectedQuestions, clearCart, toggleQuestion } = useCart();
   const { showAlert, showConfirm } = useDialog();
   const router = useRouter();
 

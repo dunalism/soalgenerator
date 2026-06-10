@@ -2,11 +2,12 @@
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Question, QuestionCard } from "./QuestionCard";
+import { QuestionCard } from "./QuestionCard";
 import { ArrowLeft, Save, FileText, Download } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { downloadAsWord, openPrintLayout } from "@/lib/export-utils";
+import { Question } from "@/lib/types";
 
 interface ReviewStepProps {
   questions: Question[];

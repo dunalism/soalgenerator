@@ -1,22 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { IncomingOption, IncomingQuestion } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-// Definisikan interface struktur data yang diterima dari request body frontend
-interface IncomingOption {
-  optionText: string;
-  isCorrect: boolean;
-}
-
-interface IncomingQuestion {
-  questionText: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
-  answerKey: string;
-  options?: IncomingOption[];
-}
 
 // GET - Fetch Assessment by ID with Questions & Options
 export async function GET(

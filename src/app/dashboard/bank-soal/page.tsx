@@ -16,25 +16,7 @@ import {
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
 import { AssessmentCard } from "@/components/dashboard/AssessmentCard";
-
-interface MatchingQuestion {
-  id: string;
-  questionText: string;
-}
-
-interface Assessment {
-  id: string;
-  inputType: "TEXT" | "IMAGE";
-  rawInputText: string | null;
-  questionType: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MIXED";
-  questionCount: number;
-  difficulty: "EASY" | "MEDIUM" | "HARD";
-  createdAt: string;
-  _count?: {
-    questions: number;
-  };
-  questions?: MatchingQuestion[];
-}
+import { Assessment } from "@/lib/types";
 
 export default function BankSoalPage() {
   const router = useRouter();

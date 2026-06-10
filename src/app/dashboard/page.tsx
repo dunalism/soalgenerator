@@ -15,27 +15,9 @@ import {
 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  AssessmentCard,
-  Assessment,
-} from "@/components/dashboard/AssessmentCard";
-
-interface StatsData {
-  totalAssessments: number;
-  totalQuestions: number;
-  difficultyDistribution: {
-    EASY: number;
-    MEDIUM: number;
-    HARD: number;
-  };
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AssessmentCard } from "@/components/dashboard/AssessmentCard";
+import { Assessment, StatsData } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();

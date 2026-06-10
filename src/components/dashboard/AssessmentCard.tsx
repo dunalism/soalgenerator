@@ -24,12 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import {
-  Option,
-  Question as DetailedQuestion,
-  MatchingQuestion,
-  Assessment,
-} from "@/lib/types";
+import { Question as DetailedQuestion, Assessment } from "@/lib/types";
 
 interface AssessmentCardProps {
   assessment: Assessment;

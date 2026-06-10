@@ -43,3 +43,24 @@ export interface ExportQuestion {
   }[];
   answerKey: string;
 }
+
+export interface IncomingOption {
+  optionText: string;
+  isCorrect: boolean;
+}
+
+export interface IncomingQuestion {
+  questionText: string;
+  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
+  answerKey: string;
+  options?: IncomingOption[];
+}
+export interface StatsData {
+  totalAssessments: number;
+  totalQuestions: number;
+  difficultyDistribution: {
+    EASY: number;
+    MEDIUM: number;
+    HARD: number;
+  };
+}
