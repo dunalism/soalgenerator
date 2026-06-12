@@ -21,6 +21,8 @@ export interface CartItem {
 interface CartContextType {
   selectedQuestions: CartItem[];
   toggleQuestion: (question: CartItem) => void;
+  addQuestionsBulk: (questions: CartItem[]) => void;
+  removeQuestionsBulk: (questionIds: string[]) => void;
   clearCart: () => void;
   isSelected: (id: string) => boolean;
 }
@@ -63,6 +65,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const addQuestionsBulk = (questions: CartItem[]) => {
+    setSelectedQuestions((prev) => {
+      const existingIds = new Set(prev.map((item) => item.id));
+      const newItems = questions.filter((q) => !existingIds.has(q.id));
+      return [...prev, ...newItems];
+    });
+  };
+
+  const removeQuestionsBulk = (questionIds: string[]) => {
+    setSelectedQuestions((prev) => {
+      const idsToRemove = new Set(questionIds);
+      return prev.filter((item) => !idsToRemove.has(item.id));
+    });
+  };
+
   const clearCart = () => {
     setSelectedQuestions([]);
   };
@@ -76,6 +93,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       value={{
         selectedQuestions,
         toggleQuestion,
+        addQuestionsBulk,
+        removeQuestionsBulk,
         clearCart,
         isSelected,
       }}

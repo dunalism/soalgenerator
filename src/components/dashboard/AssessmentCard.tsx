@@ -40,13 +40,47 @@ export function AssessmentCard({
   onDelete,
 }: AssessmentCardProps) {
   const router = useRouter();
-  const { isSelected, toggleQuestion } = useCart();
+  const { isSelected, toggleQuestion, addQuestionsBulk, removeQuestionsBulk } =
+    useCart();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [detailedQuestions, setDetailedQuestions] = useState<
     DetailedQuestion[]
   >([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+
+  const filteredQuestions = selectedType
+    ? detailedQuestions.filter((q) => q.type === selectedType)
+    : detailedQuestions;
+
+  const isAllSelected =
+    filteredQuestions.length > 0 &&
+    filteredQuestions.every((q) => isSelected(q.id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      removeQuestionsBulk(filteredQuestions.map((q) => q.id));
+    } else {
+      const cartItemsToSelect: CartItem[] = filteredQuestions.map((q) => ({
+        id: q.id,
+        questionText: q.questionText,
+        type: q.type as
+          | "MULTIPLE_CHOICE"
+          | "TRUE_FALSE"
+          | "SHORT_ANSWER"
+          | "MATCHING",
+        options: q.options.map((opt) => ({
+          id: opt.id,
+          optionText: opt.optionText,
+          isCorrect: opt.isCorrect,
+        })),
+        answerKey: q.answerKey,
+        assessmentId: assessment.id,
+        assessmentTextSnippet: `Paket ${getTypeLabel(assessment.questionType)}`,
+      }));
+      addQuestionsBulk(cartItemsToSelect);
+    }
+  };
 
   const handleToggleExpand = async () => {
     const nextState = !isExpanded;
@@ -175,29 +209,44 @@ export function AssessmentCard({
         {/* Expandable questions drawer list inside the card */}
         {isExpanded && (
           <div className="border border-primary/10 rounded-lg p-3 text-xs space-y-2 bg-primary/[0.01] animate-fade-in max-h-52 overflow-y-auto">
-            <p className="font-bold text-primary flex items-center gap-1 border-b pb-1.5">
-              <Layers className="h-3.5 w-3.5 text-primary" />
-              Pilih Butir Soal:
-            </p>
+            <div className="flex items-center justify-between border-b pb-1.5 gap-2">
+              <p className="font-bold text-primary flex items-center gap-1">
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                Pilih Butir Soal:
+              </p>
+              {!loadingQuestions && filteredQuestions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleToggleSelectAll}
+                  className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  {isAllSelected ? (
+                    <>
+                      <Square className="h-3 w-3 text-muted-foreground" />
+                      <span>Batal Semua</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare className="h-3 w-3" />
+                      <span>Pilih Semua</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             {loadingQuestions ? (
               <div className="flex items-center justify-center py-4 gap-1.5 text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>Memuat butir soal...</span>
               </div>
-            ) : (selectedType
-                ? detailedQuestions.filter((q) => q.type === selectedType)
-                : detailedQuestions
-              ).length === 0 ? (
+            ) : filteredQuestions.length === 0 ? (
               <p className="text-[11px] text-muted-foreground italic py-1 text-center">
                 Tidak ada soal yang sesuai dengan tipe filter di dalam paket
                 ini.
               </p>
             ) : (
               <div className="space-y-2 pt-1">
-                {(selectedType
-                  ? detailedQuestions.filter((q) => q.type === selectedType)
-                  : detailedQuestions
-                ).map((q, idx) => {
+                {filteredQuestions.map((q, idx) => {
                   const checked = isSelected(q.id);
                   const cartItem: CartItem = {
                     id: q.id,

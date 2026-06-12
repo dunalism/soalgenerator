@@ -3,7 +3,14 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QuestionCard } from "./QuestionCard";
-import { ArrowLeft, Save, FileText, Download } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  FileText,
+  Download,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { downloadAsWord, openPrintLayout } from "@/lib/export-utils";
@@ -35,7 +42,35 @@ export function ReviewStep({
   hasChanges,
 }: ReviewStepProps) {
   const { showAlert } = useDialog();
-  const { isSelected, toggleQuestion } = useCart();
+  const { isSelected, toggleQuestion, addQuestionsBulk, removeQuestionsBulk } =
+    useCart();
+
+  // Cek apakah semua soal aktif sudah terpilih di keranjang
+  const isAllSelected =
+    questions.length > 0 && questions.every((q) => isSelected(q.id));
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      // Batal pilih semua soal
+      removeQuestionsBulk(questions.map((q) => q.id));
+    } else {
+      // Pilih semua soal
+      const cartItemsToSelect: CartItem[] = questions.map((q) => ({
+        id: q.id,
+        questionText: q.questionText,
+        type: q.type,
+        options: q.options.map((opt) => ({
+          id: opt.id,
+          optionText: opt.optionText,
+          isCorrect: opt.isCorrect,
+        })),
+        answerKey: q.answerKey,
+        assessmentId: "",
+        assessmentTextSnippet: `Paket ${questionType} - ${difficulty}`,
+      }));
+      addQuestionsBulk(cartItemsToSelect);
+    }
+  };
 
   const handleUpdateQuestion = (updatedQuestion: Question) => {
     setQuestions((prev) =>
@@ -87,6 +122,27 @@ export function ReviewStep({
               </span>
             </div>
           </div>
+
+          {questions.length > 0 && (
+            <Button
+              onClick={handleToggleSelectAll}
+              variant={isAllSelected ? "outline" : "default"}
+              size="sm"
+              className="w-full md:w-auto h-9 px-4 shrink-0 flex items-center justify-center gap-2 font-semibold shadow-sm transition-all"
+            >
+              {isAllSelected ? (
+                <>
+                  <Square className="h-4 w-4 text-muted-foreground" />
+                  <span>Batal Pilih Semua</span>
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="h-4 w-4" />
+                  <span>Pilih Semua Soal</span>
+                </>
+              )}
+            </Button>
+          )}
         </CardContent>
       </Card>
 

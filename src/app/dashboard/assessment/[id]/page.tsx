@@ -4,7 +4,8 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { ReviewStep } from "@/components/dashboard/ReviewStep";
 import { ProgressBar } from "@/components/dashboard/ProgressBar";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Assessment, Question } from "@/lib/types";
 
@@ -28,6 +29,46 @@ export default function AssessmentReviewPage({
   const [assessmentData, setAssessmentData] = useState<Assessment | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [initialQuestions, setInitialQuestions] = useState<Question[]>([]);
+
+  const [showScrollUp, setShowScrollUp] = useState(false);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+
+  // Auto-scroll logic
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      setShowScrollUp(scrollY > 200);
+      setShowScrollDown(scrollHeight - scrollY - clientHeight > 200);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [questions]);
+
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event("scroll"));
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, questions]);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const scrollToBottom = () => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "smooth",
+    });
+  };
 
   // Fetch Assessment details on mount
   useEffect(() => {
@@ -146,6 +187,32 @@ export default function AssessmentReviewPage({
         isSaving={isSaving}
         hasChanges={hasChanges}
       />
+
+      {/* Floating Auto Scroll Buttons */}
+      <div className="fixed right-4 bottom-24 sm:right-6 sm:bottom-28 md:right-8 md:bottom-32 z-40 flex flex-col gap-2">
+        {showScrollUp && (
+          <Button
+            onClick={scrollToTop}
+            size="icon"
+            variant="outline"
+            className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm border-primary/25 shadow-md hover:bg-accent hover:text-accent-foreground transition-all duration-300"
+            title="Scroll ke Atas"
+          >
+            <ArrowUp className="h-5 w-5" />
+          </Button>
+        )}
+        {showScrollDown && (
+          <Button
+            onClick={scrollToBottom}
+            size="icon"
+            variant="outline"
+            className="h-10 w-10 rounded-full bg-background/90 backdrop-blur-sm border-primary/25 shadow-md hover:bg-accent hover:text-accent-foreground transition-all duration-300"
+            title="Scroll ke Bawah"
+          >
+            <ArrowDown className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
