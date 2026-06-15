@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -18,6 +18,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AssessmentCard } from "@/components/dashboard/AssessmentCard";
 import { Assessment, StatsData } from "@/lib/types";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
+
+interface DashboardStatsResponse {
+  success: boolean;
+  stats: StatsData;
+  recentAssessments: Assessment[];
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -26,29 +34,15 @@ export default function DashboardPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [loading, setLoading] = useState(true);
 
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [recentAssessments, setRecentAssessments] = useState<Assessment[]>([]);
+  // SWR Caching Client-Side for Dashboard
+  const { data, error, isLoading, mutate } = useSWR<DashboardStatsResponse>(
+    userId ? `/api/dashboard/stats?userId=${userId}` : null,
+    fetcher,
+  );
 
-  const fetchDashboardData = useCallback(async (uid: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/dashboard/stats?userId=${uid}`);
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setStats(data.stats);
-        setRecentAssessments(data.recentAssessments);
-      } else {
-        console.error("Gagal mengambil data statistik dashboard:", data.error);
-      }
-    } catch (error) {
-      console.error("Fetch dashboard stats error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const stats = data?.stats || null;
+  const recentAssessments: Assessment[] = data?.recentAssessments || [];
 
   // Monitor auth status and fetch stats
   useEffect(() => {
@@ -56,7 +50,6 @@ export default function DashboardPage() {
       if (currentUser) {
         setUserId(currentUser.uid);
         setUserName(currentUser.displayName || currentUser.email);
-        fetchDashboardData(currentUser.uid);
       } else {
         router.push("/login");
       }
@@ -64,7 +57,7 @@ export default function DashboardPage() {
     });
 
     return () => unsubscribe();
-  }, [fetchDashboardData, router]);
+  }, [router]);
 
   // Handle deletion of an assessment from the recent list
   const handleDeleteAssessment = async (id: string) => {
@@ -78,11 +71,25 @@ export default function DashboardPage() {
           });
 
           if (response.ok) {
-            setRecentAssessments((prev) =>
-              prev.filter((item) => item.id !== id),
-            );
-            // Re-fetch aggregate stats to keep metrics accurate after deletion
-            if (userId) fetchDashboardData(userId);
+            // Optimistic update of local SWR cache
+            if (data) {
+              mutate(
+                {
+                  ...data,
+                  recentAssessments: data.recentAssessments.filter(
+                    (item: Assessment) => item.id !== id,
+                  ),
+                  stats: {
+                    ...data.stats,
+                    totalAssessments: Math.max(
+                      0,
+                      data.stats.totalAssessments - 1,
+                    ),
+                  },
+                },
+                false, // don't refetch immediately
+              );
+            }
             showAlert("Sukses", "Paket soal berhasil dihapus!");
           } else {
             const data = await response.json();
@@ -99,7 +106,7 @@ export default function DashboardPage() {
     );
   };
 
-  if (authLoading || loading) {
+  if (authLoading || (isLoading && !data)) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
