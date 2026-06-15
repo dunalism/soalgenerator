@@ -17,6 +17,8 @@ import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
 import { AssessmentCard } from "@/components/dashboard/AssessmentCard";
 import { Assessment } from "@/lib/types";
+import useSWRInfinite from "swr/infinite";
+import { fetcher } from "@/lib/fetcher";
 
 export default function BankSoalPage() {
   const router = useRouter();
@@ -24,12 +26,6 @@ export default function BankSoalPage() {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,72 +44,58 @@ export default function BankSoalPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch assessments with parameters
-  const fetchAssessments = useCallback(
-    async (uid: string, pageNum: number, isLoadMore = false) => {
-      if (isLoadMore) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
+  // SWR Caching Client-Side with Infinite Scroll
+  interface SWRPageData {
+    success: boolean;
+    assessments: Assessment[];
+    hasMore: boolean;
+  }
 
-      try {
-        const queryParams = new URLSearchParams({
-          userId: uid,
-          page: pageNum.toString(),
-          limit: "6",
-        });
+  const getKey = (pageIndex: number, previousPageData: SWRPageData | null) => {
+    if (!userId) return null;
+    if (previousPageData && !previousPageData.assessments.length) return null;
 
-        if (debouncedSearch) queryParams.append("search", debouncedSearch);
-        if (selectedDifficulty)
-          queryParams.append("difficulty", selectedDifficulty);
-        if (selectedType) queryParams.append("questionType", selectedType);
+    const queryParams = new URLSearchParams({
+      userId: userId,
+      page: (pageIndex + 1).toString(),
+      limit: "6",
+    });
 
-        const response = await fetch(
-          `/api/assessments?${queryParams.toString()}`,
-        );
-        const data = await response.json();
+    if (debouncedSearch) queryParams.append("search", debouncedSearch);
+    if (selectedDifficulty)
+      queryParams.append("difficulty", selectedDifficulty);
+    if (selectedType) queryParams.append("questionType", selectedType);
 
-        if (response.ok && data.success) {
-          if (isLoadMore) {
-            setAssessments((prev) => [...prev, ...data.assessments]);
-          } else {
-            setAssessments(data.assessments);
-          }
-          setHasMore(data.hasMore);
-          setPage(pageNum);
-        } else {
-          console.error("Gagal mengambil data bank soal:", data.error);
-        }
-      } catch (error) {
-        console.error("Fetch bank soal error:", error);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [debouncedSearch, selectedDifficulty, selectedType],
-  );
+    return `/api/assessments?${queryParams.toString()}`;
+  };
+
+  const { data, error, size, setSize, isValidating, isLoading, mutate } =
+    useSWRInfinite(getKey, fetcher);
+
+  const assessments: Assessment[] = data
+    ? data.flatMap((page) => page.assessments)
+    : [];
+  const hasMore = data ? data[data.length - 1]?.hasMore : false;
+  const loading = isLoading;
+  const loadingMore = isValidating && size > 1;
 
   // Monitor auth status & trigger initial fetch
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUserId(currentUser.uid);
-        // Initial fetch with current filter state
-        fetchAssessments(currentUser.uid, 1, false);
       }
       setAuthLoading(false);
     });
 
     return () => unsubscribe();
-  }, [fetchAssessments]);
+  }, []);
 
   // Fetch more assessments on scroll
-  const fetchMoreAssessments = useCallback(async () => {
-    if (!userId || loadingMore || !hasMore) return;
-    await fetchAssessments(userId, page + 1, true);
-  }, [userId, page, hasMore, loadingMore, fetchAssessments]);
+  const fetchMoreAssessments = useCallback(() => {
+    if (!userId || isValidating || !hasMore) return;
+    setSize((prevSize) => prevSize + 1);
+  }, [userId, isValidating, hasMore, setSize]);
 
   // Sentinel ref for infinite scroll
   const sentinelRef = useCallback(
@@ -144,7 +126,18 @@ export default function BankSoalPage() {
           });
 
           if (response.ok) {
-            setAssessments((prev) => prev.filter((item) => item.id !== id));
+            // Optimistic update of local SWR cache
+            if (data) {
+              mutate(
+                data.map((page) => ({
+                  ...page,
+                  assessments: page.assessments.filter(
+                    (item: Assessment) => item.id !== id,
+                  ),
+                })),
+                false,
+              );
+            }
             showAlert("Sukses", "Paket soal berhasil dihapus!");
           } else {
             const data = await response.json();

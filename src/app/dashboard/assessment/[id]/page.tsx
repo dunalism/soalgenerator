@@ -8,6 +8,8 @@ import { Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Assessment, Question } from "@/lib/types";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 
 interface AssessmentPageProps {
   params: Promise<{ id: string }>;
@@ -24,14 +26,43 @@ export default function AssessmentReviewPage({
   const source = resolvedSearchParams.source;
   const { showAlert } = useDialog();
 
-  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [assessmentData, setAssessmentData] = useState<Assessment | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [initialQuestions, setInitialQuestions] = useState<Question[]>([]);
 
   const [showScrollUp, setShowScrollUp] = useState(false);
   const [showScrollDown, setShowScrollDown] = useState(false);
+
+  // SWR Caching Client-Side
+  const { data, error, isLoading, mutate } = useSWR(
+    id ? `/api/assessments/${id}` : null,
+    fetcher,
+  );
+
+  // Sync SWR cache data to local editable state during render (React recommended pattern)
+  const [prevData, setPrevData] = useState<{ assessment: Assessment } | null>(
+    null,
+  );
+  if (data !== prevData) {
+    setPrevData(data);
+    if (data && data.assessment) {
+      const mappedQuestions: Question[] = data.assessment.questions.map(
+        (q: Question) => ({
+          id: q.id,
+          questionText: q.questionText,
+          type: q.type,
+          options: q.options.map((opt) => ({
+            id: opt.id,
+            optionText: opt.optionText,
+            isCorrect: opt.isCorrect,
+          })),
+          answerKey: q.answerKey,
+        }),
+      );
+      setQuestions(mappedQuestions);
+      setInitialQuestions(JSON.parse(JSON.stringify(mappedQuestions)));
+    }
+  }
 
   // Auto-scroll logic
   useEffect(() => {
@@ -51,13 +82,13 @@ export default function AssessmentReviewPage({
   }, [questions]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!isLoading) {
       const timer = setTimeout(() => {
         window.dispatchEvent(new Event("scroll"));
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [loading, questions]);
+  }, [isLoading, questions]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -70,51 +101,17 @@ export default function AssessmentReviewPage({
     });
   };
 
-  // Fetch Assessment details on mount
+  // Handle errors from SWR
   useEffect(() => {
-    const fetchAssessment = async () => {
-      try {
-        const response = await fetch(`/api/assessments/${id}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Gagal memuat asesmen.");
-        }
-
-        setAssessmentData(data.assessment);
-
-        // Map backend schema to client-side Question interface
-        const mappedQuestions: Question[] = data.assessment.questions.map(
-          (q: Question) => ({
-            id: q.id,
-            questionText: q.questionText,
-            type: q.type,
-            options: q.options.map((opt) => ({
-              id: opt.id,
-              optionText: opt.optionText,
-              isCorrect: opt.isCorrect,
-            })),
-            answerKey: q.answerKey,
-          }),
-        );
-
-        setQuestions(mappedQuestions);
-        setInitialQuestions(JSON.parse(JSON.stringify(mappedQuestions))); // Salinan murni untuk deteksi perubahan
-      } catch (error) {
-        const err = error as Error;
-        console.error("Fetch error:", err);
-        showAlert(
-          "Gagal Memuat",
-          err.message || "Terjadi kesalahan saat memuat data.",
-        );
-        router.push("/dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAssessment();
-  }, [id, router, showAlert]);
+    if (error) {
+      console.error("Fetch error:", error);
+      showAlert(
+        "Gagal Memuat",
+        error.message || "Terjadi kesalahan saat memuat data.",
+      );
+      router.push("/dashboard");
+    }
+  }, [error, router, showAlert]);
 
   // Handle saving the updated questions list to the database (MySQL)
   const handleSaveToBankSoal = async () => {
@@ -130,10 +127,24 @@ export default function AssessmentReviewPage({
         }),
       });
 
-      const data = await response.json();
+      const resData = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Gagal menyimpan perubahan.");
+        throw new Error(resData.error || "Gagal menyimpan perubahan.");
+      }
+
+      // Mutate local SWR cache
+      if (data) {
+        mutate(
+          {
+            ...data,
+            assessment: {
+              ...data.assessment,
+              questions: questions,
+            },
+          },
+          false,
+        ); // don't refetch immediately, trust the client's state
       }
 
       setInitialQuestions(JSON.parse(JSON.stringify(questions))); // Reset state perubahan
@@ -154,7 +165,7 @@ export default function AssessmentReviewPage({
   const hasChanges =
     JSON.stringify(questions) !== JSON.stringify(initialQuestions);
 
-  if (loading) {
+  if (isLoading && !data) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -172,10 +183,10 @@ export default function AssessmentReviewPage({
       <ReviewStep
         questions={questions}
         setQuestions={setQuestions}
-        title={assessmentData?.title || null}
-        inputType={assessmentData?.inputType || "TEXT"}
-        questionType={assessmentData?.questionType || ""}
-        difficulty={assessmentData?.difficulty || ""}
+        title={data?.assessment?.title || null}
+        inputType={data?.assessment?.inputType || "TEXT"}
+        questionType={data?.assessment?.questionType || ""}
+        difficulty={data?.assessment?.difficulty || ""}
         onBack={() => {
           if (source === "bank-soal") {
             router.push("/dashboard/bank-soal");
