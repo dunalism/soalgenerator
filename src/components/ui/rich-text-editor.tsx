@@ -37,9 +37,10 @@ export default function RichTextEditor({
           keepAttributes: false,
         },
       }),
-      Underline,
+      Underline.configure(),
     ],
     content: value,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
