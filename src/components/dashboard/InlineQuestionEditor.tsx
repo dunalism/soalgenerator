@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Trash2 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
-import { Question } from "@/lib/types";
+import { Option, Question } from "@/lib/types";
 import dynamic from "next/dynamic";
 
 // Dynamic import of RichTextEditor to avoid SSR hydration crash
@@ -72,7 +72,7 @@ export function InlineQuestionEditor({
     }
 
     const tempId = `manual-${Date.now()}`;
-    let mappedOptions: any[] = [];
+    let mappedOptions: Option[] = [];
     let answerKey = "";
 
     if (questionType === "MULTIPLE_CHOICE") {
