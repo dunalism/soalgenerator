@@ -19,35 +19,77 @@ const RichTextEditor = dynamic(() => import("../ui/rich-text-editor"), {
 });
 
 interface InlineQuestionEditorProps {
+  initialQuestion?: Question;
+  index?: number;
   onSave: (question: Question) => void;
   onCancel: () => void;
 }
 
 export function InlineQuestionEditor({
+  initialQuestion,
+  index,
   onSave,
   onCancel,
 }: InlineQuestionEditorProps) {
   const { showAlert } = useDialog();
 
-  const [questionText, setQuestionText] = useState("");
+  const isEditMode = !!initialQuestion;
+
+  const [questionText, setQuestionText] = useState(
+    initialQuestion?.questionText || "",
+  );
   const [questionType, setNewQuestionType] = useState<
     "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING"
-  >("MULTIPLE_CHOICE");
+  >(initialQuestion?.type || "MULTIPLE_CHOICE");
 
   // State Pilihan Ganda (MULTIPLE_CHOICE)
-  const [options, setOptions] = useState<string[]>(["", "", "", ""]);
-  const [correctOptionIdx, setCorrectOptionIdx] = useState<number>(0);
+  const [options, setOptions] = useState<string[]>(() => {
+    if (
+      initialQuestion?.type === "MULTIPLE_CHOICE" &&
+      initialQuestion.options
+    ) {
+      return initialQuestion.options.map((opt) => opt.optionText);
+    }
+    return ["", "", "", ""];
+  });
+
+  const [correctOptionIdx, setCorrectOptionIdx] = useState<number>(() => {
+    if (
+      initialQuestion?.type === "MULTIPLE_CHOICE" &&
+      initialQuestion.options
+    ) {
+      const idx = initialQuestion.options.findIndex((opt) => opt.isCorrect);
+      return idx >= 0 ? idx : 0;
+    }
+    return 0;
+  });
 
   // State Benar / Salah (TRUE_FALSE)
   const [trueFalseAnswer, setTrueFalseAnswer] = useState<"TRUE" | "FALSE">(
-    "TRUE",
+    () => {
+      if (initialQuestion?.type === "TRUE_FALSE") {
+        return initialQuestion.answerKey === "Benar" ||
+          initialQuestion.answerKey === "TRUE"
+          ? "TRUE"
+          : "FALSE";
+      }
+      return "TRUE";
+    },
   );
 
   // State Menjodohkan (MATCHING)
-  const [matchingAnswer, setMatchingAnswer] = useState("");
+  const [matchingAnswer, setMatchingAnswer] = useState(() => {
+    return initialQuestion?.type === "MATCHING"
+      ? initialQuestion.answerKey
+      : "";
+  });
 
   // State Esai / Uraian (SHORT_ANSWER)
-  const [essayAnswer, setEssayAnswer] = useState("");
+  const [essayAnswer, setEssayAnswer] = useState(() => {
+    return initialQuestion?.type === "SHORT_ANSWER"
+      ? initialQuestion.answerKey
+      : "";
+  });
 
   const handleAddOption = () => {
     if (options.length < 5) {
@@ -71,7 +113,7 @@ export function InlineQuestionEditor({
       return;
     }
 
-    const tempId = `manual-${Date.now()}`;
+    const questionId = initialQuestion?.id || `manual-${Date.now()}`;
     let mappedOptions: Option[] = [];
     let answerKey = "";
 
@@ -80,21 +122,35 @@ export function InlineQuestionEditor({
         showAlert("Validasi Gagal", "Harap isi semua teks pilihan jawaban.");
         return;
       }
-      mappedOptions = options.map((opt, idx) => ({
-        id: `${tempId}-opt-${idx}`,
-        optionText: opt.trim(),
-        isCorrect: idx === correctOptionIdx,
-      }));
+      mappedOptions = options.map((opt, idx) => {
+        // Reuse option ID if editing to avoid creating new records/deleting old ones in DB
+        const existingOptId =
+          initialQuestion?.type === "MULTIPLE_CHOICE"
+            ? initialQuestion.options[idx]?.id
+            : null;
+
+        return {
+          id: existingOptId || `${questionId}-opt-${idx}`,
+          optionText: opt.trim(),
+          isCorrect: idx === correctOptionIdx,
+        };
+      });
       answerKey = options[correctOptionIdx].trim();
     } else if (questionType === "TRUE_FALSE") {
       mappedOptions = [
         {
-          id: `${tempId}-opt-0`,
+          id:
+            (initialQuestion?.type === "TRUE_FALSE" &&
+              initialQuestion.options[0]?.id) ||
+            `${questionId}-opt-0`,
           optionText: "Benar",
           isCorrect: trueFalseAnswer === "TRUE",
         },
         {
-          id: `${tempId}-opt-1`,
+          id:
+            (initialQuestion?.type === "TRUE_FALSE" &&
+              initialQuestion.options[1]?.id) ||
+            `${questionId}-opt-1`,
           optionText: "Salah",
           isCorrect: trueFalseAnswer === "FALSE",
         },
@@ -118,15 +174,15 @@ export function InlineQuestionEditor({
       answerKey = essayAnswer.trim();
     }
 
-    const newQuestion: Question = {
-      id: tempId,
+    const updatedQuestion: Question = {
+      id: questionId,
       questionText: questionText,
       type: questionType,
       options: mappedOptions,
       answerKey,
     };
 
-    onSave(newQuestion);
+    onSave(updatedQuestion);
   };
 
   return (
@@ -134,7 +190,11 @@ export function InlineQuestionEditor({
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-sm font-bold tracking-tight text-primary uppercase flex items-center gap-1.5">
           <Plus className="h-4 w-4" />
-          <span>Tulis Soal Baru secara Manual</span>
+          <span>
+            {!isEditMode
+              ? "Tulis Soal Baru secara Manual"
+              : `Edit Soal #${(index ?? 0) + 1}`}
+          </span>
         </CardTitle>
         <Button
           onClick={onCancel}
@@ -326,9 +386,9 @@ export function InlineQuestionEditor({
             onClick={handleSaveClick}
             size="sm"
             type="button"
-            className="font-bold shadow-md"
+            className="font-bold shadow-md cursor-pointer"
           >
-            Tambahkan Soal
+            {isEditMode ? "Simpan Perubahan" : "Tambahkan Soal"}
           </Button>
         </div>
       </CardContent>
