@@ -12,6 +12,11 @@ import {
   ListOrdered,
   Code,
   RotateCcw,
+  Heading1,
+  Heading2,
+  Heading3,
+  Undo,
+  Redo,
 } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -66,7 +71,76 @@ export default function RichTextEditor({
   return (
     <div className="w-full rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-primary/25 focus-within:border-primary transition-all overflow-hidden flex flex-col">
       {/* Toolbar */}
-      <div className="flex flex-wrap gap-1 border-b bg-muted/20 p-1.5 select-none">
+      <div className="flex flex-wrap items-center gap-1 border-b bg-muted/20 p-1.5 select-none">
+        {/* Undo / Redo */}
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          className={`p-1.5 rounded hover:bg-muted transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground`}
+          title="Urungkan (Undo)"
+        >
+          <Undo className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          className={`p-1.5 rounded hover:bg-muted transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground`}
+          title="Ulangi (Redo)"
+        >
+          <Redo className="h-4 w-4" />
+        </button>
+
+        <div className="w-px h-5 bg-border self-center mx-1" />
+
+        {/* Headings */}
+        <button
+          type="button"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          className={`p-1.5 rounded hover:bg-muted transition-colors cursor-pointer ${
+            editor.isActive("heading", { level: 1 })
+              ? "bg-muted text-primary font-bold"
+              : "text-muted-foreground"
+          }`}
+          title="Judul 1 (H1)"
+        >
+          <Heading1 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          className={`p-1.5 rounded hover:bg-muted transition-colors cursor-pointer ${
+            editor.isActive("heading", { level: 2 })
+              ? "bg-muted text-primary font-bold"
+              : "text-muted-foreground"
+          }`}
+          title="Judul 2 (H2)"
+        >
+          <Heading2 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          }
+          className={`p-1.5 rounded hover:bg-muted transition-colors cursor-pointer ${
+            editor.isActive("heading", { level: 3 })
+              ? "bg-muted text-primary font-bold"
+              : "text-muted-foreground"
+          }`}
+          title="Judul 3 (H3)"
+        >
+          <Heading3 className="h-4 w-4" />
+        </button>
+
+        <div className="w-px h-5 bg-border self-center mx-1" />
+
+        {/* Inline Formatting */}
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -103,7 +177,10 @@ export default function RichTextEditor({
         >
           <UnderlineIcon className="h-4 w-4" />
         </button>
+
         <div className="w-px h-5 bg-border self-center mx-1" />
+
+        {/* Lists & Blocks */}
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -140,7 +217,10 @@ export default function RichTextEditor({
         >
           <Code className="h-4 w-4" />
         </button>
+
         <div className="w-px h-5 bg-border self-center mx-1" />
+
+        {/* Utils */}
         <button
           type="button"
           onClick={() =>
