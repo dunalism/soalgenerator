@@ -175,9 +175,10 @@ export function QuestionCard({
               className="font-medium text-base min-h-[80px] border-primary/40 focus-visible:ring-primary resize-y"
             />
           ) : (
-            <p className="font-medium text-foreground text-base leading-relaxed">
-              {question.questionText}
-            </p>
+            <div
+              className="font-medium text-foreground text-base leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: question.questionText }}
+            />
           ))}
 
         {/* Layout khusus untuk Menjodohkan */}
@@ -266,7 +267,10 @@ export function QuestionCard({
                     />
                   )
                 ) : (
-                  <span className="text-sm font-medium">{opt.optionText}</span>
+                  <span
+                    className="text-sm font-medium prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: opt.optionText }}
+                  />
                 )}
               </div>
             ))}
