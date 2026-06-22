@@ -80,14 +80,14 @@ Dokumen ini berfungsi sebagai panduan arsitektur komprehensif, panduan langkah d
 
 ---
 
-### 🖥️ Tahap 2: API Pembuatan Ujian & Static JSON Generator (Guru)
+### 🖥️ Tahap 2: API Pembuatan Ujian & Static JSON Generator (Guru) (SELESAI ✅)
 
 Membuat API Endpoint bagi Guru untuk membuat ujian baru dan menghasilkan berkas static JSON.
 
-- [ ] **API Route**: `POST /api/exams`
-  - Menerima payload: `assessmentId`, `title`, `duration`, `startTime`, `endTime`, `showLeaderboard`.
+- [x] **API Route**: `POST /api/exams`
+  - Menerima payload: `assessmentId`, `title`, `duration`, `startTime`, `endTime`, `showLeaderboard`, `shuffleQuestions`, `shuffleOptions`.
   - Membuat token acak alfanumerik 6 karakter (unik).
-  - Menyimpan data `Exam` di database MySQL (termasuk status toggle `showLeaderboard`).
+  - Menyimpan data `Exam` di database TiDB Serverless (termasuk status toggle `showLeaderboard` dan opsi pengacakan).
   - Mengambil daftar soal dari paket `Assessment` terkait, membuang semua informasi kunci jawaban (`isCorrect` dan `answerKey`), lalu mengompres struktur datanya menjadi array JSON bersih.
   - Menyimpan file JSON statis di: `/public/exams/[token].json`.
   - _Contoh isi JSON statis_:
@@ -194,11 +194,29 @@ Membangun antarmuka papan peringkat publik yang responsif tanpa beban login.
 
 ---
 
-## 💡 CATATAN KHUSUS UNTUK KODE KONSISTEN & SOLU TION EMAS
+## 💡 CATATAN KHUSUS UNTUK KODE KONSISTEN & SOLUTION EMAS
 
-- **Prisma Connection Throttling**:
-  Karena server gratisan memiliki limit ketat, di file `prisma.config.ts` atau file koneksi database, pastikan Anda menambahkan batasan pool size:
-  `DATABASE_URL="mysql://...&connection_limit=3&pool_timeout=15"`
-  Ini memaksa Prisma mengantre kueri di sisi server Next.js alih-alih melempar error ke database MySQL.
+- **Prisma & TiDB Serverless Connection Optimization**:
+  Dengan migrasi ke **TiDB Serverless**, kita tidak lagi dibatasi oleh limit koneksi MySQL gratisan konvensional (seperti 5-10 koneksi pada Filess.io). Namun, karena TiDB Serverless menggunakan model billing berbasis **Request Units (RU)**, kita harus mengoptimalkan penggunaan koneksi dan kuota RU agar tetap masuk dalam batas **FREE tier (0 Rupiah!)**:
+  - Hindari koneksi bocor dengan memastikan penggunaan instance singleton `prisma` dari `src/lib/prisma.ts` secara ketat.
+  - Tambahkan parameter optimal pada connection string jika diperlukan untuk membatasi pool size agar meminimalkan idle connections di lingkungan serverless:
+    `DATABASE_URL="mysql://...&connection_limit=10&pool_timeout=30"`
+  - TiDB Serverless sangat andal dalam menangani transaksi paralel, sehingga proses penulisan batch jawaban siswa menggunakan Prisma Transaction (`prisma.$transaction`) akan berjalan jauh lebih cepat dan aman dari deadlock dibandingkan MySQL konvensional.
+- **Pencegahan Masalah N+1 Query**:
+  Untuk menghemat Request Units (RU) TiDB secara masif, kita wajib menghindari kueri N+1 (di mana aplikasi melakukan kueri berulang-ulang dalam sebuah perulangan/loop):
+  - Saat menghasilkan JSON statis di **Tahap 2**, tarik seluruh relasi `Assessment` -> `Question` -> `Option` dalam **satu kueri tunggal** menggunakan fitur `include` bawaan Prisma:
+    ```typescript
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      include: {
+        questions: {
+          include: {
+            options: true,
+          },
+        },
+      },
+    });
+    ```
+  - Saat melakukan grading di **Tahap 5**, jangan menembak kueri pencocokan ke database satu demi satu untuk setiap jawaban siswa. Cukup ambil data paket soal beserta kunci jawabannya sekali saja di awal menggunakan token ujian, lalu lakukan pencocokan di memori (in-memory grading).
 - **Keamanan Waktu (Cheat-Proof Timer)**:
   Jangan hanya mengandalkan timer `setInterval` di client karena siswa bisa menghentikannya dengan menjeda debugger JavaScript atau mengganti jam Windows. Di awal ujian, catat `serverStartTime` dan hitung sisa durasi berdasarkan perbandingan delta `Date.now()` server asli dengan saat ini.

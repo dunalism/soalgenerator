@@ -123,6 +123,8 @@ model Exam {
   endTime         DateTime      // Waktu selesai pengerjaan ditutup
   isActive        Boolean       @default(true)
   showLeaderboard Boolean       @default(true) // Toggle visibilitas peringkat secara publik
+  shuffleQuestions Boolean      @default(false) // Guru memilih apakah soal diacak per siswa
+  shuffleOptions   Boolean      @default(false) // Guru memilih apakah opsi pilihan ganda diacak per siswa
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
