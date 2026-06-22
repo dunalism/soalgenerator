@@ -203,25 +203,39 @@ body {
 /* TipTap Editor and Prose Rich-Text Styling for lists */
 .prose ul,
 .rich-text ul,
-.tiptap ul {
+.tiptap ul,
+.prose-sm ul,
+[class*="prose"] ul {
   list-style-type: disc !important;
+  list-style-position: outside !important;
   padding-left: 1.5rem !important;
+  margin-left: 1rem !important;
   margin-top: 0.5rem !important;
   margin-bottom: 0.5rem !important;
+  display: block !important;
 }
 
 .prose ol,
 .rich-text ol,
-.tiptap ol {
+.tiptap ol,
+.prose-sm ol,
+[class*="prose"] ol {
   list-style-type: decimal !important;
+  list-style-position: outside !important;
   padding-left: 1.5rem !important;
+  margin-left: 1rem !important;
   margin-top: 0.5rem !important;
   margin-bottom: 0.5rem !important;
+  display: block !important;
 }
 
 .prose li,
 .rich-text li,
-.tiptap li {
+.tiptap li,
+.prose-sm li,
+[class*="prose"] li {
+  list-style-type: inherit !important;
+  display: list-item !important;
   margin-top: 0.25rem !important;
   margin-bottom: 0.25rem !important;
 }
