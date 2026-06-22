@@ -3,7 +3,8 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
-import { useEffect } from "react";
+import TiptapImage from "@tiptap/extension-image";
+import { useEffect, useRef } from "react";
 import {
   Bold,
   Italic,
@@ -17,7 +18,50 @@ import {
   Heading3,
   Undo,
   Redo,
+  Image as ImageIcon,
 } from "lucide-react";
+
+// Client-side image compression utility
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Convert to JPEG with 0.7 quality to keep size under 80kb
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        resolve(compressedBase64);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
 
 interface RichTextEditorProps {
   value: string;
@@ -30,6 +74,8 @@ export default function RichTextEditor({
   onChange,
   placeholder,
 }: RichTextEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -43,6 +89,9 @@ export default function RichTextEditor({
         },
       }),
       Underline.configure(),
+      TiptapImage.configure({
+        allowBase64: true,
+      }),
     ],
     content: value,
     immediatelyRender: false,
@@ -63,6 +112,32 @@ export default function RichTextEditor({
       editor.commands.setContent(value);
     }
   }, [value, editor]);
+
+  const handleImageUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        alert("Harap pilih berkas gambar.");
+        return;
+      }
+      try {
+        const compressedBase64 = await compressImage(file);
+        editor?.chain().focus().setImage({ src: compressedBase64 }).run();
+      } catch (err) {
+        console.error("Gagal kompresi gambar:", err);
+        alert("Gagal memproses gambar.");
+      }
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   if (!editor) {
     return null;
@@ -223,6 +298,14 @@ export default function RichTextEditor({
         {/* Utils */}
         <button
           type="button"
+          onClick={handleImageUploadClick}
+          className="p-1.5 rounded hover:bg-muted transition-colors cursor-pointer text-muted-foreground"
+          title="Unggah Gambar"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
           onClick={() =>
             editor.chain().focus().unsetAllMarks().clearNodes().run()
           }
@@ -241,6 +324,14 @@ export default function RichTextEditor({
           </div>
         )}
       </div>
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImageFileChange}
+        accept="image/*"
+        className="hidden"
+      />
     </div>
   );
 }
