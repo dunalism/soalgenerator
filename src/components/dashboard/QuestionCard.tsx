@@ -33,6 +33,7 @@ export function QuestionCard({
       <InlineQuestionEditor
         initialQuestion={question}
         index={index}
+        allowedType={question.type}
         onSave={(updatedQuestion) => {
           onUpdate(updatedQuestion);
           setIsEditing(false);

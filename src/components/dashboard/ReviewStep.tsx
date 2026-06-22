@@ -209,6 +209,7 @@ export function ReviewStep({
 
         {isAdding && (
           <InlineQuestionEditor
+            allowedType={questionType}
             onSave={(newQuestion) => {
               setQuestions((prev) => [...prev, newQuestion]);
               setIsAdding(false);

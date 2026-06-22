@@ -21,6 +21,7 @@ const RichTextEditor = dynamic(() => import("../ui/rich-text-editor"), {
 interface InlineQuestionEditorProps {
   initialQuestion?: Question;
   index?: number;
+  allowedType?: string;
   onSave: (question: Question) => void;
   onCancel: () => void;
 }
@@ -28,6 +29,7 @@ interface InlineQuestionEditorProps {
 export function InlineQuestionEditor({
   initialQuestion,
   index,
+  allowedType,
   onSave,
   onCancel,
 }: InlineQuestionEditorProps) {
@@ -40,7 +42,17 @@ export function InlineQuestionEditor({
   );
   const [questionType, setNewQuestionType] = useState<
     "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING"
-  >(initialQuestion?.type || "MULTIPLE_CHOICE");
+  >(() => {
+    if (initialQuestion?.type) return initialQuestion.type;
+    if (allowedType && allowedType !== "MIXED" && allowedType !== "Campuran") {
+      return allowedType as
+        | "MULTIPLE_CHOICE"
+        | "TRUE_FALSE"
+        | "SHORT_ANSWER"
+        | "MATCHING";
+    }
+    return "MULTIPLE_CHOICE";
+  });
 
   // State Pilihan Ganda (MULTIPLE_CHOICE)
   const [options, setOptions] = useState<string[]>(() => {
@@ -216,6 +228,12 @@ export function InlineQuestionEditor({
             </label>
             <select
               value={questionType}
+              disabled={
+                isEditMode ||
+                (!!allowedType &&
+                  allowedType !== "MIXED" &&
+                  allowedType !== "Campuran")
+              }
               onChange={(e) => {
                 setNewQuestionType(
                   e.target.value as
@@ -225,7 +243,7 @@ export function InlineQuestionEditor({
                     | "MATCHING",
                 );
               }}
-              className="w-full bg-background border border-input px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all cursor-pointer font-medium"
+              className="w-full bg-background border border-input px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all cursor-pointer font-medium disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-muted/30"
             >
               <option value="MULTIPLE_CHOICE">Pilihan Ganda</option>
               <option value="TRUE_FALSE">Benar / Salah</option>
