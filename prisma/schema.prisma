@@ -112,20 +112,21 @@ model Option {
 
 // 5. Model Sesi Ujian (Exam) - Dibuat oleh Guru
 model Exam {
-  id           String        @id @default(uuid())
-  assessmentId String
-  assessment   Assessment    @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  id              String        @id @default(uuid())
+  assessmentId    String
+  assessment      Assessment    @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
-  title        String        @db.VarChar(255) // Nama/Judul sesi ujian (misal: "Ujian Harian Matematika")
-  token        String        @unique @db.VarChar(50) // Kode ujian unik untuk diakses siswa
-  duration     Int           // Durasi pengerjaan dalam menit
-  startTime    DateTime      // Waktu mulai pengerjaan boleh diakses
-  endTime      DateTime      // Waktu selesai pengerjaan ditutup
-  isActive     Boolean       @default(true)
+  title           String        @db.VarChar(255) // Nama/Judul sesi ujian (misal: "Ujian Harian Matematika")
+  token           String        @unique @db.VarChar(50) // Kode ujian unik untuk diakses siswa
+  duration        Int           // Durasi pengerjaan dalam menit
+  startTime       DateTime      // Waktu mulai pengerjaan boleh diakses
+  endTime         DateTime      // Waktu selesai pengerjaan ditutup
+  isActive        Boolean       @default(true)
+  showLeaderboard Boolean       @default(true) // Toggle visibilitas peringkat secara publik
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  attempts     ExamAttempt[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  attempts        ExamAttempt[]
 
   @@map("exams")
 }
