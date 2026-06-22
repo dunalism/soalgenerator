@@ -207,3 +207,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
+
+// GET - Mengambil daftar sesi ujian (Exams) terhubung dengan assessment milik user
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized. Missing userId." },
+        { status: 400 },
+      );
+    }
+
+    const exams = await prisma.exam.findMany({
+      where: {
+        assessment: {
+          userId: userId,
+        },
+      },
+      include: {
+        assessment: {
+          select: {
+            title: true,
+            questionCount: true,
+            questionType: true,
+          },
+        },
+        _count: {
+          select: {
+            attempts: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ success: true, exams });
+  } catch (error) {
+    console.error("Error fetching exams:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan internal server.";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}

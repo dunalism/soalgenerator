@@ -112,11 +112,11 @@ Membuat API Endpoint bagi Guru untuk membuat ujian baru dan menghasilkan berkas 
 
 ---
 
-### 📊 Tahap 3: UI Manajemen Sesi Ujian (Dashboard Guru)
+### 📊 Tahap 3: UI Manajemen Sesi Ujian (Dashboard Guru) (SELESAI ✅)
 
 Membangun antarmuka bagi Guru untuk mengelola sesi ujian.
 
-- [ ] **Halaman SWR / Dashboard**: `/dashboard/exams`
+- [x] **Halaman SWR / Dashboard**: `/dashboard/exams`
   - Daftar sesi ujian aktif dan nonaktif yang telah dibuat guru.
   - Tombol _"Buat Sesi Ujian Baru"_ (membuka formulir/modal pemilihan paket soal dan isian durasi/token).
   - Menampilkan Token Ujian besar-besar agar mudah disalin atau ditampilkan di proyektor kelas.
