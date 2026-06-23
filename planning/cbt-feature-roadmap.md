@@ -124,21 +124,25 @@ Membangun antarmuka bagi Guru untuk mengelola sesi ujian.
 
 ---
 
-### 🎨 Tahap 4: UI & Engine CBT Client-Side (Siswa)
+### 🎨 Tahap 4: UI & Engine CBT Client-Side (Siswa) - SIAP EKSEKUSI 🚀
 
 Membangun halaman pelaksanaan ujian untuk siswa yang andal, offline-safe, dan bebas gangguan.
 
 - [ ] **Halaman Login CBT**: `/cbt`
-  - Formulir sederhana: Nama Lengkap, No Absen/NISN, Token Ujian.
-  - Melakukan fetch static ke `/exams/[token].json` untuk mendeteksi keberadaan ujian secara instan tanpa query database.
-- [ ] **Halaman Pelaksanaan Ujian**: `/cbt/[token]`
-  - Menggunakan mode **Focus Mode**: Menyembunyikan seluruh sidebar/navbar dashboard guru.
-  - Memiliki sidebar nomor navigasi soal (kotak-kotak nomor soal beralih warna: abu-abu = belum dijawab, biru = sudah dijawab, kuning = ragu-ragu).
-  - Merender `RichTextEditor` dalam mode read-only (atau render HTML aman) untuk menampilkan soal yang mengandung format teks kaya dan gambar.
-  - Sistem Timer mundur yang sinkron dengan backend, memicu auto-submit jika mencapai `00:00`.
-  - Sistem auto-save berkala ke `localStorage` (Kunci: `cbt-attempt-[token]`).
+  - Formulir sederhana: Nama Lengkap, No Absen/NISN, dan Token Ujian.
+  - AI Agent Note: Lakukan fetch ke API Route Statis `/api/exams/[token]/questions`. Jika sukses (status 200), simpan data identitas siswa + data soal ke dalam State/Context, lalu arahkan (router.push) ke `/cbt/[token]`. Jika gagal (status 403/404), tampilkan alert pesan error asli dari server (misal: "Ujian belum aktif").
 
----
+- [ ] **Halaman Pelaksanaan Ujian**: `/cbt/[token]`
+  - **Focus Mode Layout**: Buat layout khusus bersih tanpa navbar/sidebar dashboard guru. Gunakan deteksi `window.addEventListener('beforeunload')` untuk mencegah siswa tidak sengaja menutup tab ujian.
+  - **Sidebar Navigasi Soal**: Merender kotak-kotak nomor soal. Setiap kotak memiliki indikator warna dinamis berdasarkan State Jawaban:
+    - Abu-abu = Belum dijawab (`UNANSWERED`)
+    - Biru = Sudah dijawab (`ANSWERED`)
+    - Kuning = Ragu-ragu (`DOUBTFUL`)
+  - **Render Konten Soal**: Sediakan komponen untuk me-render HTML aman (`dangerouslySetInnerHTML` dengan pembersihan sederhana) guna menampilkan soal teks kaya dari generator AI.
+  - **Engine Timer & LocalStorage Anti-Loss**:
+    - Detik mundur wajib berkurang setiap 1 detik dan langsung di-backup ke `localStorage` dengan kunci `cbt-attempt-[token]`.
+    - Setiap siswa memilih opsi jawaban atau mengubah status ragu-ragu, langsung perbarui `localStorage` secara instan (tanpa menunggu debouncing).
+    - Jika sisa waktu mencapai `0`, kunci layar dan otomatis pemicu fungsi `handleSubmitUjian()`.
 
 ### 🔒 Tahap 5: Keamanan & Server-Side Grading Engine
 
