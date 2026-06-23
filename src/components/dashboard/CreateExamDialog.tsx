@@ -6,13 +6,7 @@ import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-
-interface AssessmentOption {
-  id: string;
-  title: string | null;
-  questionCount: number;
-  questionType: string;
-}
+import { AssessmentOption } from "@/lib/types";
 
 interface CreateExamDialogProps {
   isOpen: boolean;
@@ -162,7 +156,7 @@ export function CreateExamDialog({
                 </option>
                 {assessments.map((a) => (
                   <option key={a.id} value={a.id} className="dark:bg-card">
-                    {a.title || "Tanpa Judul"} ({a.questionCount} Soal -{" "}
+                    {a.title || "Tanpa Judul"} ({a._count?.questions} Soal -{" "}
                     {a.questionType})
                   </option>
                 ))}

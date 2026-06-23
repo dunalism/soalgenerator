@@ -23,27 +23,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-
-interface ExamItem {
-  id: string;
-  title: string;
-  token: string;
-  duration: number;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-  showLeaderboard: boolean;
-  shuffleQuestions: boolean;
-  shuffleOptions: boolean;
-  assessment: {
-    title: string | null;
-    questionCount: number;
-    questionType: string;
-  };
-  _count: {
-    attempts: number;
-  };
-}
+import { ExamItem } from "@/lib/types";
 
 interface ExamCardProps {
   exam: ExamItem;

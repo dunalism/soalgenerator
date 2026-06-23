@@ -13,39 +13,7 @@ import { CreateExamDialog } from "@/components/dashboard/CreateExamDialog";
 import useSWRInfinite from "swr/infinite";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
-
-interface AssessmentOption {
-  id: string;
-  title: string | null;
-  questionCount: number;
-  questionType: string;
-}
-
-interface ExamItem {
-  id: string;
-  title: string;
-  token: string;
-  duration: number;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-  showLeaderboard: boolean;
-  shuffleQuestions: boolean;
-  shuffleOptions: boolean;
-  assessment: {
-    title: string | null;
-    questionCount: number;
-    questionType: string;
-  };
-  _count: {
-    attempts: number;
-  };
-}
-
-interface ExamsResponse {
-  success: boolean;
-  exams: ExamItem[];
-}
+import { AssessmentOption, ExamItem } from "@/lib/types";
 
 interface AssessmentsListResponse {
   success: boolean;

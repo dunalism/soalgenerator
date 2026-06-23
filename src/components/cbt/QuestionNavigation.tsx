@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface QuestionNavigationProps {
   questions: Array<{ id: string; order: number }>;
@@ -68,10 +69,10 @@ export default function QuestionNavigation({
       </div>
 
       <div className="border-t pt-4">
-        <h3 className="font-heading font-bold text-sm tracking-wide uppercase text-muted-foreground mb-3">
+        <h3 className="font-heading font-bold text-sm tracking-wide uppercase text-muted-foreground  mb-3">
           Nomor Soal
         </h3>
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-y-auto max-h-[350px] pr-1">
+        <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-y-auto max-h-[350px] p-1">
           {questions.map((q, idx) => {
             const ans = answers[q.id];
             const isCurrent = idx === currentQuestionIndex;
@@ -94,14 +95,14 @@ export default function QuestionNavigation({
             return (
               <Button
                 key={q.id}
-                variant="outline"
                 size="icon"
                 onClick={() => onSelectQuestion(idx)}
-                className={`font-semibold text-sm transition-all h-10 w-full relative ${buttonClass} ${
-                  isCurrent
-                    ? "ring-2 ring-foreground ring-offset-2 dark:ring-offset-background"
-                    : ""
-                }`}
+                className={cn(
+                  "font-semibold text-sm transition-all h-10 w-full relative",
+                  buttonClass,
+                  isCurrent &&
+                    "ring-2 ring-foreground ring-offset-2 dark:ring-offset-background",
+                )}
               >
                 {idx + 1}
               </Button>

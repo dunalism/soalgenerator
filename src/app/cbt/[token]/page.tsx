@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -12,27 +12,13 @@ import CbtLayout from "@/components/cbt/CbtLayout";
 import CbtTimer from "@/components/cbt/CbtTimer";
 import QuestionNavigation from "@/components/cbt/QuestionNavigation";
 import {
-  Wifi,
-  WifiOff,
   RefreshCw,
   Send,
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
 } from "lucide-react";
-
-interface Option {
-  id: string;
-  optionText: string;
-}
-
-interface Question {
-  id: string;
-  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER" | "MATCHING";
-  questionText: string;
-  order: number;
-  options: Option[];
-}
+import { Question } from "@/lib/types";
 
 interface ExamData {
   examId: string;
