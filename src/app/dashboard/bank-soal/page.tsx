@@ -69,7 +69,7 @@ export default function BankSoalPage() {
     return `/api/assessments?${queryParams.toString()}`;
   };
 
-  const { data, error, size, setSize, isValidating, isLoading, mutate } =
+  const { data, size, setSize, isValidating, isLoading, mutate } =
     useSWRInfinite(getKey, fetcher);
 
   const assessments: Assessment[] = data

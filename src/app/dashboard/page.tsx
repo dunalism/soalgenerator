@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const [authLoading, setAuthLoading] = useState(true);
 
   // SWR Caching Client-Side for Dashboard
-  const { data, error, isLoading, mutate } = useSWR<DashboardStatsResponse>(
+  const { data, isLoading, mutate } = useSWR<DashboardStatsResponse>(
     userId ? `/api/dashboard/stats?userId=${userId}` : null,
     fetcher,
   );
