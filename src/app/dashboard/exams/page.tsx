@@ -23,6 +23,15 @@ import {
 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 
@@ -298,25 +307,22 @@ export default function ExamsDashboardPage() {
     const end = new Date(exam.endTime).getTime();
 
     if (!exam.isActive) {
-      return { label: "Ditutup", color: "bg-red-100 text-red-800" };
+      return { label: "Ditutup", variant: "destructive" as const };
     }
     if (now < start) {
-      return { label: "Akan Datang", color: "bg-blue-100 text-blue-800" };
+      return { label: "Akan Datang", variant: "secondary" as const };
     }
     if (now > end) {
-      return { label: "Selesai", color: "bg-gray-100 text-gray-800" };
+      return { label: "Selesai", variant: "outline" as const };
     }
-    return {
-      label: "Sedang Aktif",
-      color: "bg-emerald-100 text-emerald-800 border border-emerald-300",
-    };
+    return { label: "Sedang Aktif", variant: "default" as const };
   };
 
   if (authLoading || examsLoading) {
     return (
-      <div className="flex h-[70vh] flex-col items-center justify-center gap-3">
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-        <p className="text-sm font-medium text-slate-500">
+      <div className="flex h-[70vh] flex-col items-center justify-center gap-3 bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground">
           Memuat Sesi Ujian CBT...
         </p>
       </div>
@@ -325,12 +331,10 @@ export default function ExamsDashboardPage() {
 
   if (examsError) {
     return (
-      <div className="flex h-[50vh] flex-col items-center justify-center gap-2 p-4 text-center">
-        <AlertTriangle className="h-12 w-12 text-rose-500" />
-        <h3 className="text-lg font-semibold text-slate-800">
-          Gagal Memuat Data
-        </h3>
-        <p className="text-sm text-slate-500 max-w-md">
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-2 p-4 text-center bg-background text-foreground">
+        <AlertTriangle className="h-12 w-12 text-destructive" />
+        <h3 className="text-lg font-semibold">Gagal Memuat Data</h3>
+        <p className="text-sm text-muted-foreground max-w-md">
           Terjadi kesalahan saat berkomunikasi dengan server. Silakan muat ulang
           halaman.
         </p>
@@ -339,186 +343,187 @@ export default function ExamsDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-8">
+    <div className="container mx-auto max-w-7xl px-4 py-8 bg-background text-foreground">
       {/* HEADER SECTION */}
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-extrabold tracking-tight">
             Sesi Ujian CBT
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Kelola ujian mandiri tangguh dengan infrastruktur server hemat biaya
             (0 Rupiah).
           </p>
         </div>
-        <Button
-          onClick={openCreateModal}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md transition"
-        >
+        <Button onClick={openCreateModal} variant="default" size="lg">
           + Buat Ujian CBT Baru
         </Button>
       </div>
 
       {/* DASHBOARD LIST */}
       {exams.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-sm">
-          <div className="rounded-full bg-slate-50 p-4 mb-4">
-            <Clipboard className="h-12 w-12 text-slate-400" />
+        <Card className="flex flex-col items-center justify-center border-dashed p-12 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <Clipboard className="h-12 w-12 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-800">
+          <CardTitle className="text-lg font-semibold">
             Belum Ada Sesi Ujian
-          </h3>
-          <p className="mt-1 text-sm text-slate-500 max-w-md">
+          </CardTitle>
+          <CardDescription className="mt-1 max-w-md">
             Anda belum pernah membuat sesi ujian CBT. Klik tombol di atas untuk
             mengaktifkan sesi ujian baru dari paket soal yang sudah Anda miliki.
-          </p>
-        </div>
+          </CardDescription>
+        </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {exams.map((exam) => {
             const status = getExamStatus(exam);
             return (
-              <div
+              <Card
                 key={exam.id}
-                className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md hover:border-slate-300"
+                className="flex flex-col justify-between transition-all hover:ring-1 hover:ring-primary/50"
               >
-                {/* Status Badge & Actions */}
-                <div className="mb-4 flex items-center justify-between">
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.color}`}
-                  >
-                    {status.label}
-                  </span>
-                  <div className="flex gap-2">
-                    {/* Tutup / Buka Ujian Button */}
-                    {exam.isActive && status.label === "Sedang Aktif" ? (
-                      <button
-                        onClick={() => handleToggleActive(exam.id, true)}
-                        title="Tutup Ujian"
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition"
-                      >
-                        <Square className="h-4 w-4" />
-                      </button>
-                    ) : (
-                      !exam.isActive && (
-                        <button
-                          onClick={() => handleToggleActive(exam.id, false)}
-                          title="Aktifkan Kembali Ujian"
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition"
-                        >
-                          <Play className="h-4 w-4" />
-                        </button>
-                      )
-                    )}
-
-                    {/* Hapus Button */}
-                    <button
-                      onClick={() => handleDeleteExam(exam.id, exam.title)}
-                      title="Hapus Sesi Ujian"
-                      className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-2">
+                    <Button
+                      variant={status.variant}
+                      size="xs"
+                      disabled
+                      className="pointer-events-none"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+                      {status.label}
+                    </Button>
+                    <div className="flex gap-2">
+                      {/* Tutup / Buka Ujian Button */}
+                      {exam.isActive && status.label === "Sedang Aktif" ? (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => handleToggleActive(exam.id, true)}
+                          title="Tutup Ujian"
+                        >
+                          <Square className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        !exam.isActive && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleToggleActive(exam.id, false)}
+                            title="Aktifkan Kembali Ujian"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )
+                      )}
 
-                {/* Title & Info */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition">
-                    {exam.title}
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-400">
+                      {/* Hapus Button */}
+                      <Button
+                        variant="destructive"
+                        size="icon-sm"
+                        onClick={() => handleDeleteExam(exam.id, exam.title)}
+                        title="Hapus Sesi Ujian"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <CardTitle className="leading-snug">{exam.title}</CardTitle>
+                  <CardDescription>
                     Paket: {exam.assessment.title || "Tanpa Judul"} (
                     {exam.assessment.questionCount} Soal)
-                  </p>
-                </div>
+                  </CardDescription>
+                </CardHeader>
 
-                {/* TOKEN BOX */}
-                <div className="mb-6 rounded-xl bg-slate-50 p-3.5 border border-slate-100 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                      Token Akses Siswa
-                    </p>
-                    <p className="text-2xl font-black tracking-wider text-slate-800 font-mono">
-                      {exam.token}
-                    </p>
+                <CardContent className="space-y-4">
+                  {/* TOKEN BOX */}
+                  <div className="rounded-lg bg-muted p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        Token Akses Siswa
+                      </p>
+                      <p className="text-2xl font-black tracking-wider font-mono text-primary">
+                        {exam.token}
+                      </p>
+                    </div>
+                    <Button
+                      variant={
+                        copiedToken === exam.token ? "secondary" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => handleCopyToken(exam.token)}
+                    >
+                      {copiedToken === exam.token ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          Tersalin
+                        </>
+                      ) : (
+                        <>
+                          <Clipboard className="h-3.5 w-3.5" />
+                          Salin
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <button
-                    onClick={() => handleCopyToken(exam.token)}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                      copiedToken === exam.token
-                        ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                    }`}
+
+                  {/* METRICS & CONFIG */}
+                  <div className="space-y-2 text-xs text-muted-foreground pt-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>
+                        Durasi: <strong>{exam.duration} Menit</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>Mulai: {formatDateDisplay(exam.startTime)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>Selesai: {formatDateDisplay(exam.endTime)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>
+                        Siswa Submit:{" "}
+                        <strong>{exam._count.attempts} Siswa</strong>
+                      </span>
+                    </div>
+
+                    {/* Shuffling Indicators */}
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {exam.shuffleQuestions && (
+                        <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">
+                          <Shuffle className="h-2.5 w-2.5" /> Soal Diacak
+                        </span>
+                      )}
+                      {exam.shuffleOptions && (
+                        <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">
+                          <Shuffle className="h-2.5 w-2.5" /> Opsi Diacak
+                        </span>
+                      )}
+                      {exam.showLeaderboard && (
+                        <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          🏆 Leaderboard Publik
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+
+                <CardFooter className="pt-0 bg-transparent">
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() =>
+                      router.push(`/dashboard/exams/${exam.id}/results`)
+                    }
                   >
-                    {copiedToken === exam.token ? (
-                      <>
-                        <Check className="h-3.5 w-3.5" />
-                        Tersalin
-                      </>
-                    ) : (
-                      <>
-                        <Clipboard className="h-3.5 w-3.5" />
-                        Salin
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* METRICS & CONFIG */}
-                <div className="space-y-2.5 border-t border-slate-100 pt-4 mb-5 text-xs text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5 text-slate-400" />
-                    <span>
-                      Durasi: <strong>{exam.duration} Menit</strong>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Mulai: {formatDateDisplay(exam.startTime)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Selesai: {formatDateDisplay(exam.endTime)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-3.5 w-3.5 text-slate-400" />
-                    <span>
-                      Siswa Submit:{" "}
-                      <strong>{exam._count.attempts} Siswa</strong>
-                    </span>
-                  </div>
-
-                  {/* Shuffling Indicators */}
-                  <div className="flex flex-wrap gap-1.5 pt-2">
-                    {exam.shuffleQuestions && (
-                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                        <Shuffle className="h-2.5 w-2.5" /> Soal Diacak
-                      </span>
-                    )}
-                    {exam.shuffleOptions && (
-                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                        <Shuffle className="h-2.5 w-2.5" /> Opsi Diacak
-                      </span>
-                    )}
-                    {exam.showLeaderboard && (
-                      <span className="inline-flex items-center gap-1 rounded bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600">
-                        🏆 Leaderboard Publik
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* BOTTOM ACTION BUTTON */}
-                <Button
-                  onClick={() =>
-                    router.push(`/dashboard/exams/${exam.id}/results`)
-                  }
-                  className="w-full bg-slate-800 hover:bg-indigo-600 text-white font-semibold transition"
-                >
-                  <Eye className="mr-2 h-4 w-4" /> Lihat Hasil & Rekap Nilai
-                </Button>
-              </div>
+                    <Eye className="mr-2 h-4 w-4" /> Lihat Hasil & Rekap Nilai
+                  </Button>
+                </CardFooter>
+              </Card>
             );
           })}
         </div>
@@ -526,228 +531,226 @@ export default function ExamsDashboardPage() {
 
       {/* FORM MODAL (BUAT UJIAN BARU) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade-in text-foreground">
+          <Card className="relative w-full max-w-2xl bg-card border border-border max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4">
+            <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
               <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-indigo-600" />
-                <h2 className="text-xl font-bold text-slate-800">
+                <Settings className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl font-bold">
                   Buat Sesi Ujian CBT
-                </h2>
+                </CardTitle>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setIsModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
               >
                 <X className="h-5 w-5" />
-              </button>
-            </div>
+              </Button>
+            </CardHeader>
 
             {/* Modal Body / Form */}
-            <form onSubmit={handleCreateExam} className="space-y-4">
-              {/* Dropdown Pilih Paket Soal */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Pilih Paket Soal (Assessment){" "}
-                  <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  required
-                  value={selectedAssessmentId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setSelectedAssessmentId(id);
-                    if (id) {
-                      const selected = assessments.find((a) => a.id === id);
-                      if (selected) {
-                        const titleName = selected.title || "Ujian Baru";
-                        setExamTitle(`Sesi CBT - ${titleName}`);
+            <CardContent className="pt-4">
+              <form onSubmit={handleCreateExam} className="space-y-4">
+                {/* Dropdown Pilih Paket Soal */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Pilih Paket Soal (Assessment){" "}
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <select
+                    required
+                    value={selectedAssessmentId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedAssessmentId(id);
+                      if (id) {
+                        const selected = assessments.find((a) => a.id === id);
+                        if (selected) {
+                          const titleName = selected.title || "Ujian Baru";
+                          setExamTitle(`Sesi CBT - ${titleName}`);
+                        }
                       }
-                    }
-                  }}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition"
-                >
-                  <option value="">-- Pilih Paket Soal --</option>
-                  {assessments.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.title || "Tanpa Judul"} ({a.questionCount} Soal -{" "}
-                      {a.questionType})
+                    }}
+                    className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+                  >
+                    <option value="" className="dark:bg-card">
+                      -- Pilih Paket Soal --
                     </option>
-                  ))}
-                </select>
-                {assessments.length === 0 && (
-                  <p className="mt-1 text-xs text-rose-500">
-                    Anda belum memiliki Paket Soal. Silakan buat paket soal
-                    terlebih dahulu di menu Bank Soal.
-                  </p>
-                )}
-              </div>
+                    {assessments.map((a) => (
+                      <option key={a.id} value={a.id} className="dark:bg-card">
+                        {a.title || "Tanpa Judul"} ({a.questionCount} Soal -{" "}
+                        {a.questionType})
+                      </option>
+                    ))}
+                  </select>
+                  {assessments.length === 0 && (
+                    <p className="mt-1 text-xs text-destructive">
+                      Anda belum memiliki Paket Soal. Silakan buat paket soal
+                      terlebih dahulu di menu Bank Soal.
+                    </p>
+                  )}
+                </div>
 
-              {/* Judul Ujian */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                  Judul Sesi Ujian <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Misal: Ujian Harian Matematika Semester Ganjil"
-                  value={examTitle}
-                  onChange={(e) => setExamTitle(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* Durasi */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Durasi Pengerjaan (Menit){" "}
-                    <span className="text-rose-500">*</span>
+                {/* Judul Ujian */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Judul Sesi Ujian <span className="text-destructive">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <Input
+                    type="text"
                     required
-                    min={1}
-                    value={examDuration}
-                    onChange={(e) =>
-                      setExamDuration(
-                        Math.max(1, parseInt(e.target.value, 10) || 0),
-                      )
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+                    placeholder="Misal: Ujian Harian Matematika Semester Ganjil"
+                    value={examTitle}
+                    onChange={(e) => setExamTitle(e.target.value)}
                   />
                 </div>
-
-                {/* Toggle Leaderboard */}
-                <div className="flex flex-col justify-center rounded-xl bg-slate-50 border border-slate-100 p-3.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-700 block">
-                        Papan Peringkat
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        Tampilkan peringkat publik siswa
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={showLeaderboard}
-                      onChange={(e) => setShowLeaderboard(e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 border-slate-200 rounded focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Batasan Waktu */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Waktu Mulai <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Waktu Selesai <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {/* Fitur Keamanan Pengacakan */}
-              <div className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  ⚙️ Fitur Pengacakan (Anti Contek)
-                </span>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Acak Soal */}
-                  <div className="flex items-center justify-between bg-white border border-slate-100 rounded-lg p-2.5">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-700 block">
-                        Acak Urutan Soal
-                      </span>
-                      <span className="text-[9px] text-slate-400">
-                        Urutan butir soal diacak untuk tiap siswa
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={shuffleQuestions}
-                      onChange={(e) => setShuffleQuestions(e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 border-slate-200 rounded focus:ring-indigo-500"
+                  {/* Durasi */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Durasi Pengerjaan (Menit){" "}
+                      <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      required
+                      min={1}
+                      value={examDuration}
+                      onChange={(e) =>
+                        setExamDuration(
+                          Math.max(1, parseInt(e.target.value, 10) || 0),
+                        )
+                      }
                     />
                   </div>
 
-                  {/* Acak Opsi */}
-                  <div className="flex items-center justify-between bg-white border border-slate-100 rounded-lg p-2.5">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-700 block">
-                        Acak Pilihan Jawaban
-                      </span>
-                      <span className="text-[9px] text-slate-400">
-                        Pilihan ganda (A/B/C/D) diacak per siswa
-                      </span>
+                  {/* Toggle Leaderboard */}
+                  <div className="flex flex-col justify-center rounded-lg bg-muted/50 border p-3.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold block">
+                          Papan Peringkat
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          Tampilkan peringkat publik siswa
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={showLeaderboard}
+                        onChange={(e) => setShowLeaderboard(e.target.checked)}
+                        className="h-4 w-4 accent-primary rounded cursor-pointer"
+                      />
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={shuffleOptions}
-                      onChange={(e) => setShuffleOptions(e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 border-slate-200 rounded focus:ring-indigo-500"
+                  </div>
+                </div>
+
+                {/* Batasan Waktu */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Waktu Mulai <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      type="datetime-local"
+                      required
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="text-foreground bg-transparent dark:bg-input/30"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Waktu Selesai <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      type="datetime-local"
+                      required
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="text-foreground bg-transparent dark:bg-input/30"
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Informational Warning */}
-              <div className="rounded-xl bg-indigo-50/50 border border-indigo-100/50 p-4 text-xs text-indigo-700 flex gap-2.5">
-                <CheckCircle className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />
-                <p className="leading-relaxed">
-                  <strong>Arsitektur 0 Rupiah Siap Bekerja:</strong> Sistem
-                  secara otomatis memproduksi file statis JSON aman tanpa kunci
-                  jawaban di server. Siswa akan mengunduh soal secara statis
-                  tanpa membuat database TiDB Anda kewalahan.
-                </p>
-              </div>
+                {/* Fitur Keamanan Pengacakan */}
+                <div className="rounded-lg border p-4 space-y-3 bg-muted/20">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                    ⚙️ Fitur Pengacakan (Anti Contek)
+                  </span>
 
-              {/* Submit / Cancel Buttons */}
-              <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                  className="font-semibold text-slate-600"
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition flex items-center gap-1.5"
-                >
-                  {submitting && (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  )}
-                  Aktifkan Sesi CBT
-                </Button>
-              </div>
-            </form>
-          </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Acak Soal */}
+                    <div className="flex items-center justify-between bg-card border rounded-lg p-2.5">
+                      <div>
+                        <span className="text-xs font-semibold block">
+                          Acak Urutan Soal
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          Urutan butir soal diacak untuk tiap siswa
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={shuffleQuestions}
+                        onChange={(e) => setShuffleQuestions(e.target.checked)}
+                        className="h-4 w-4 accent-primary rounded cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Acak Opsi */}
+                    <div className="flex items-center justify-between bg-card border rounded-lg p-2.5">
+                      <div>
+                        <span className="text-xs font-semibold block">
+                          Acak Pilihan Jawaban
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          Pilihan ganda (A/B/C/D) diacak per siswa
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={shuffleOptions}
+                        onChange={(e) => setShuffleOptions(e.target.checked)}
+                        className="h-4 w-4 accent-primary rounded cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informational Warning */}
+                <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 text-xs text-primary flex gap-2.5">
+                  <CheckCircle className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                  <p className="leading-relaxed">
+                    <strong>Arsitektur 0 Rupiah Siap Bekerja:</strong> Sistem
+                    secara otomatis memproduksi file statis JSON aman tanpa
+                    kunci jawaban di server. Siswa akan mengunduh soal secara
+                    statis tanpa membuat database TiDB Anda kewalahan.
+                  </p>
+                </div>
+
+                {/* Submit / Cancel Buttons */}
+                <div className="mt-6 flex justify-end gap-3 border-t pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsModalOpen(false)}
+                  >
+                    Batal
+                  </Button>
+                  <Button type="submit" disabled={submitting} variant="default">
+                    {submitting && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    )}
+                    Aktifkan Sesi CBT
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
