@@ -12,7 +12,7 @@ export async function generateStaticParams() {
       select: { token: true },
     });
     return exams.map((exam) => ({
-      token: exam.token,
+      id: exam.token, // Menggunakan 'id' sebagai nama slug agar seragam dengan dynamic path '[id]'
     }));
   } catch (error) {
     console.error("Error generating static params:", error);
@@ -20,13 +20,13 @@ export async function generateStaticParams() {
   }
 }
 
-// GET - Mengambil data soal ujian statis untuk siswa berdasarkan token
+// GET - Mengambil data soal ujian statis untuk siswa berdasarkan token (dioperasikan lewat slug [id])
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ token: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { token } = await params;
+    const { id: token } = await params;
 
     if (!token) {
       return NextResponse.json(
