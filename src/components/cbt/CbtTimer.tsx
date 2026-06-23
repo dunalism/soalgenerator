@@ -6,9 +6,28 @@ import { Clock } from "lucide-react";
 interface CbtTimerProps {
   durationMinutes: number;
   token: string;
-  startedAt: number; // timestamp when exam session started
+  startedAt: number; // timestamp saat sesi ujian dimulai
   onTimeUp: () => void;
 }
+
+// 🔐 UTILITY UNTUK PENYAMARAN DATA LOCALSTORAGE (Anti Inspect Element Hack)
+const SALT = 13; // Angka pengali rahasia sederhana
+
+const encodeSecureTime = (seconds: number): string => {
+  // Kalikan dengan SALT lalu ubah menjadi format teks Base64
+  return btoa((seconds * SALT).toString());
+};
+
+const decodeSecureTime = (encoded: string): number | null => {
+  try {
+    // Kembalikan dari Base64 lalu bagi dengan SALT
+    const rawValue = Math.floor(Number(atob(encoded)) / SALT);
+    return isNaN(rawValue) ? null : rawValue;
+  } catch {
+    // Jika siswa mengedit string secara acak di console, kembalikan null (akan dipaksa habis waktu)
+    return null;
+  }
+};
 
 export default function CbtTimer({
   durationMinutes,
@@ -17,19 +36,28 @@ export default function CbtTimer({
   onTimeUp,
 }: CbtTimerProps) {
   const [timeLeft, setTimeLeft] = useState<number>(() => {
-    // Check if there is already a saved remaining time in localStorage
-    if (typeof window !== "undefined") {
-      const savedTime = localStorage.getItem(`cbt-timer-${token}`);
-      if (savedTime) {
-        const parsed = parseInt(savedTime, 10);
-        if (parsed > 0) return parsed;
-      }
-    }
-    // Otherwise calculate based on starting time and duration
+    // 1. Hitung sisa waktu matematika asli berdasarkan server timestamp (Kebenaran Mutlak)
     const totalDurationSeconds = durationMinutes * 60;
     const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
-    const calculatedLeft = totalDurationSeconds - elapsedSeconds;
-    return calculatedLeft > 0 ? calculatedLeft : 0;
+    const serverCalculatedLeft = totalDurationSeconds - elapsedSeconds;
+    const safeServerLeft = serverCalculatedLeft > 0 ? serverCalculatedLeft : 0;
+
+    if (typeof window !== "undefined") {
+      const savedTimeEncoded = localStorage.getItem(`cbt-timer-${token}`);
+
+      if (savedTimeEncoded) {
+        const decodedSeconds = decodeSecureTime(savedTimeEncoded);
+
+        // Jika data diubah paksa secara tidak sah oleh siswa, hukum dengan waktu habis (0)
+        if (decodedSeconds === null) return 0;
+
+        // 2. PROTEKSI CROSS-CHECK: Jika siswa mencoba membesarkan angka di localStorage,
+        // paksa sistem mengambil nilai terkecil demi menghindari kecurangan penambahan waktu.
+        return Math.min(decodedSeconds, safeServerLeft);
+      }
+    }
+
+    return safeServerLeft;
   });
 
   const onTimeUpRef = useRef(onTimeUp);
@@ -46,9 +74,15 @@ export default function CbtTimer({
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         const nextTime = prev - 1;
+
         if (typeof window !== "undefined") {
-          localStorage.setItem(`cbt-timer-${token}`, nextTime.toString());
+          // Simpan ke localStorage menggunakan enkripsi Base64 tersamar
+          localStorage.setItem(
+            `cbt-timer-${token}`,
+            encodeSecureTime(nextTime),
+          );
         }
+
         if (nextTime <= 0) {
           clearInterval(interval);
           onTimeUpRef.current();
@@ -68,11 +102,11 @@ export default function CbtTimer({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const isLowTime = timeLeft < 300; // less than 5 minutes
+  const isLowTime = timeLeft < 300; // Sisa waktu kurang dari 5 menit
 
   return (
     <div
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-mono font-bold text-sm sm:text-base ${
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-mono font-bold text-sm sm:text-base select-none ${
         isLowTime
           ? "border-destructive bg-destructive/10 text-destructive animate-pulse"
           : "border-border bg-muted/50 text-foreground"
