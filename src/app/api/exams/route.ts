@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import fs from "fs";
-import path from "path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -130,66 +128,17 @@ export async function POST(request: Request) {
       },
     });
 
-    // 7. Penarikan Data Soal & Opsi (Optimal, Mencegah N+1 Query)
-    const assessmentWithQuestions = await prisma.assessment.findUnique({
-      where: { id: assessmentId },
-      include: {
-        questions: {
-          orderBy: { order: "asc" },
-          include: {
-            options: true,
-          },
-        },
-      },
-    });
-
-    if (!assessmentWithQuestions) {
-      return NextResponse.json(
-        { error: "Gagal menarik data soal dari database." },
-        { status: 500 },
-      );
+    // 7. Pemicu pembuatan Next.js Route Cache / ISR secara instan (Warm Cache)
+    try {
+      const requestUrl = new URL(request.url);
+      const warmCacheUrl = `${requestUrl.origin}/api/exams/${token}/questions`;
+      // Melakukan fetch internal agar Vercel / Next.js mem-build cache statisnya saat ini juga
+      await fetch(warmCacheUrl);
+    } catch (cacheError) {
+      console.warn("Gagal melakukan pre-warm cache soal:", cacheError);
     }
 
-    // 8. Sanitisasi Kunci Jawaban (Menjamin keamanan anti-cheat sisi siswa)
-    const sanitizedQuestions = assessmentWithQuestions.questions.map(
-      (question) => {
-        return {
-          id: question.id,
-          type: question.type,
-          questionText: question.questionText,
-          order: question.order,
-          options: question.options.map((option) => ({
-            id: option.id,
-            optionText: option.optionText,
-          })),
-        };
-      },
-    );
-
-    // 9. Penulisan Berkas JSON Statis ke public/exams/[token].json
-    const examsDir = path.join(process.cwd(), "public", "exams");
-    fs.mkdirSync(examsDir, { recursive: true });
-
-    const staticExamData = {
-      examId: exam.id,
-      title: exam.title,
-      token: exam.token,
-      duration: exam.duration,
-      startTime: exam.startTime,
-      endTime: exam.endTime,
-      shuffleQuestions: exam.shuffleQuestions,
-      shuffleOptions: exam.shuffleOptions,
-      questions: sanitizedQuestions,
-    };
-
-    const filePath = path.join(examsDir, `${token}.json`);
-    fs.writeFileSync(
-      filePath,
-      JSON.stringify(staticExamData, null, 2),
-      "utf-8",
-    );
-
-    // 10. Kembalikan Respon Sukses
+    // 8. Kembalikan Respon Sukses
     return NextResponse.json(
       {
         success: true,

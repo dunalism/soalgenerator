@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import fs from "fs";
-import path from "path";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +26,13 @@ export async function PATCH(
       where: { id },
       data: { isActive: !!isActive },
     });
+
+    // Revalidasi cache statis pertanyaan agar perubahan status aktif/nonaktif langsung ter-apply
+    try {
+      revalidatePath(`/api/exams/${exam.token}/questions`);
+    } catch (cacheError) {
+      console.warn(`Gagal merevalidasi cache:`, cacheError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -71,29 +77,20 @@ export async function DELETE(
       where: { id },
     });
 
-    // 3. Hapus file statis JSON di public/exams/[token].json jika ada
+    // 3. Revalidasi cache statis pertanyaan di Next.js Route Cache
     try {
-      const filePath = path.join(
-        process.cwd(),
-        "public",
-        "exams",
-        `${token}.json`,
-      );
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (fileError) {
-      // Abaikan error file I/O agar proses delete record tidak gagal jika file tidak sengaja terhapus
+      revalidatePath(`/api/exams/${token}/questions`);
+    } catch (cacheError) {
       console.warn(
-        `Gagal menghapus file statis /public/exams/${token}.json:`,
-        fileError,
+        `Gagal merevalidasi cache /api/exams/${token}/questions:`,
+        cacheError,
       );
     }
 
     return NextResponse.json({
       success: true,
       message:
-        "Sesi ujian CBT beserta seluruh data pengerjaan siswa dan file statis berhasil dihapus.",
+        "Sesi ujian CBT beserta seluruh data pengerjaan siswa dan cache statis berhasil dihapus.",
     });
   } catch (error) {
     console.error("Error deleting exam:", error);
