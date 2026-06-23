@@ -157,7 +157,7 @@ export async function POST(request: Request) {
   }
 }
 
-// GET - Mengambil daftar sesi ujian (Exams) terhubung dengan assessment milik user
+// GET - Mengambil daftar sesi ujian (Exams) terhubung dengan assessment milik user dengan paginasi
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -170,12 +170,18 @@ export async function GET(request: Request) {
       );
     }
 
-    const exams = await prisma.exam.findMany({
-      where: {
-        assessment: {
-          userId: userId,
-        },
+    const page = Number(searchParams.get("page") || "1");
+    const limit = Number(searchParams.get("limit") || "6");
+    const skip = (page - 1) * limit;
+
+    const whereClause = {
+      assessment: {
+        userId: userId,
       },
+    };
+
+    const exams = await prisma.exam.findMany({
+      where: whereClause,
       include: {
         assessment: {
           select: {
@@ -191,9 +197,23 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: skip,
     });
 
-    return NextResponse.json({ success: true, exams });
+    const totalCount = await prisma.exam.count({
+      where: whereClause,
+    });
+
+    const hasMore = skip + exams.length < totalCount;
+
+    return NextResponse.json({
+      success: true,
+      exams,
+      totalCount,
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
+    });
   } catch (error) {
     console.error("Error fetching exams:", error);
     const errorMessage =

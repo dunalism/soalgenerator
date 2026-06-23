@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { ExamCard } from "@/components/dashboard/ExamCard";
 import { CreateExamDialog } from "@/components/dashboard/CreateExamDialog";
+import useSWRInfinite from "swr/infinite";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 
@@ -61,25 +62,73 @@ export default function ExamsDashboardPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch Exams milik user
-  const {
-    data: examsData,
-    error: examsError,
-    isLoading: examsLoading,
-    mutate: mutateExams,
-  } = useSWR<ExamsResponse>(
-    userId ? `/api/exams?userId=${userId}` : null,
-    fetcher,
-  );
-
   // Fetch Paket Soal (Assessments) untuk dropdown modal
   const { data: assessmentsData } = useSWR<AssessmentsListResponse>(
     userId ? `/api/assessments?userId=${userId}&limit=100` : null,
     fetcher,
   );
 
-  const exams = examsData?.exams || [];
   const assessments = assessmentsData?.assessments || [];
+
+  // SWR Caching Client-Side with Infinite Scroll
+  interface SWRExamsPageData {
+    success: boolean;
+    exams: ExamItem[];
+    hasMore: boolean;
+  }
+
+  const getKey = (
+    pageIndex: number,
+    previousPageData: SWRExamsPageData | null,
+  ) => {
+    if (!userId) return null;
+    if (previousPageData && !previousPageData.exams.length) return null;
+
+    return `/api/exams?userId=${userId}&page=${pageIndex + 1}&limit=6`;
+  };
+
+  const {
+    data: infiniteData,
+    size,
+    setSize,
+    error: examsError,
+    isValidating,
+    isLoading: examsLoading,
+    mutate: mutateExams,
+  } = useSWRInfinite<SWRExamsPageData>(getKey, fetcher);
+
+  const exams: ExamItem[] = infiniteData
+    ? infiniteData.flatMap((page) => page.exams)
+    : [];
+  const hasMore = infiniteData
+    ? infiniteData[infiniteData.length - 1]?.hasMore
+    : false;
+  const loadingMore = isValidating && size > 1;
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Fetch more exams on scroll
+  const fetchMoreExams = useCallback(() => {
+    if (!userId || isValidating || !hasMore) return;
+    setSize((prevSize) => prevSize + 1);
+  }, [userId, isValidating, hasMore, setSize]);
+
+  // Sentinel ref for infinite scroll
+  const sentinelRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (examsLoading || loadingMore) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          fetchMoreExams();
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [examsLoading, loadingMore, hasMore, fetchMoreExams],
+  );
 
   // Monitor status autentikasi
   useEffect(() => {
@@ -223,6 +272,30 @@ export default function ExamsDashboardPage() {
               onDelete={handleDeleteExam}
             />
           ))}
+        </div>
+      )}
+
+      {/* Sentinel indicator for scroll down pagination */}
+      {hasMore && (
+        <div
+          ref={sentinelRef}
+          className="py-8 flex items-center justify-center gap-2"
+        >
+          {loadingMore && (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground">
+                Memuat sesi ujian berikutnya...
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* End of content indicator */}
+      {!hasMore && exams.length > 0 && (
+        <div className="text-center py-8 text-xs font-medium text-muted-foreground border-t mt-6">
+          Semua sesi ujian Anda telah berhasil dimuat.
         </div>
       )}
 
