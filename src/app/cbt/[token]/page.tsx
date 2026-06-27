@@ -93,6 +93,7 @@ export default function CbtExamPage({
   const [submitting, setSubmitting] = useState(false);
   const [jitterTime, setJitterTime] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Initialize and load data from localStorage
   useEffect(() => {
@@ -289,28 +290,36 @@ export default function CbtExamPage({
       "Konfirmasi Keluar Sesi",
       "Apakah Anda yakin ingin keluar ke halaman utama? Tenang, lembar progres jawaban Anda tetap aman disimpan di browser ini.",
       () => {
-        window.location.href = "/cbt";
+        setIsNavigating(true);
+        setTimeout(() => {
+          window.location.href = "/cbt";
+        }, 50);
       },
     );
   }, [showConfirm]);
 
   useEffect(() => {
     if (loading) return;
-
     window.history.pushState(null, "", window.location.href);
-
     const handlePopState = () => {
       window.history.pushState(null, "", window.location.href);
-
+      setIsNavigating(true);
       handleExitAttempt();
+    };
+    // Tameng untuk penutupan tab / refresh total (Aturan baku browser)
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isNavigating) return;
+      e.preventDefault();
     };
 
     window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [loading, handleExitAttempt]);
+  }, [loading, handleExitAttempt, isNavigating]);
 
   if (loading || !student || !exam) {
     return (
