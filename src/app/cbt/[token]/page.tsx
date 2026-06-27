@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,6 @@ export default function CbtExamPage({
 
   // Initialize and load data from localStorage
   useEffect(() => {
-    // Gunakan setTimeout 0 agar asinkron dan mencegah render beruntun sinkron di React Effect
     const timer = setTimeout(() => {
       try {
         const savedSession = localStorage.getItem(
@@ -115,13 +114,39 @@ export default function CbtExamPage({
         setStudent(parsedSession);
         setExam(parsedExam);
 
-        // Handle question shuffling if requested by teacher
-        let finalQuestions = [...parsedExam.questions];
-        if (parsedExam.shuffleQuestions) {
-          // Shuffle using seed from student name/id to keep it consistent on page refresh
-          const seed = parsedSession.name + parsedSession.studentId;
-          finalQuestions = shuffleArrayWithSeed(finalQuestions, seed);
+        // 1. Salin data soal dasar agar tidak merusak data asli di localStorage
+        let finalQuestions = parsedExam.questions.map((q) => ({
+          ...q,
+          options: q.options ? [...q.options] : [], // deep copy opsi
+        }));
+
+        // 2. Kunci Identitas untuk Seed Pengacak
+        const baseSeed = parsedSession.name + parsedSession.studentId;
+
+        // 3. Eksekusi Pengacakan Opsi Pilihan Ganda (Jika diaktifkan oleh Guru)
+        if (parsedExam.shuffleOptions) {
+          finalQuestions = finalQuestions.map((q) => {
+            if (
+              q.type === "MULTIPLE_CHOICE" &&
+              q.options &&
+              q.options.length > 0
+            ) {
+              // Gabungkan baseSeed dengan ID Soal agar acakan opsi antar-soal berbeda pola
+              const optionSeed = baseSeed + q.id;
+              return {
+                ...q,
+                options: shuffleArrayWithSeed(q.options, optionSeed),
+              };
+            }
+            return q;
+          });
         }
+
+        // 4. Eksekusi Pengacakan Nomor Urut Soal (Jika diaktifkan oleh Guru)
+        if (parsedExam.shuffleQuestions) {
+          finalQuestions = shuffleArrayWithSeed(finalQuestions, baseSeed);
+        }
+
         setQuestions(finalQuestions);
 
         // Load saved answers from localStorage if any
@@ -259,9 +284,33 @@ export default function CbtExamPage({
     );
   };
 
-  const handleExitToCbtMain = () => {
-    router.push("/cbt");
-  };
+  const handleExitAttempt = useCallback(() => {
+    showConfirm(
+      "Konfirmasi Keluar Sesi",
+      "Apakah Anda yakin ingin keluar ke halaman utama? Tenang, lembar progres jawaban Anda tetap aman disimpan di browser ini.",
+      () => {
+        window.location.href = "/cbt";
+      },
+    );
+  }, [showConfirm]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+
+      handleExitAttempt();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [loading, handleExitAttempt]);
 
   if (loading || !student || !exam) {
     return (
@@ -282,7 +331,7 @@ export default function CbtExamPage({
       title={exam.title}
       studentName={student.name}
       studentId={student.studentId}
-      onExit={handleExitToCbtMain}
+      onExit={handleExitAttempt}
       timerComponent={
         <CbtTimer
           durationMinutes={exam.duration}

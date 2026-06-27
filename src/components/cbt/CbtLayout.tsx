@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Wifi, WifiOff, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDialog } from "@/components/ui/dialog-provider";
 
 interface CbtLayoutProps {
   children: React.ReactNode;
@@ -25,7 +24,6 @@ export default function CbtLayout({
   const [isOnline, setIsOnline] = useState(() =>
     typeof window !== "undefined" ? window.navigator.onLine : true,
   );
-  const { showConfirm } = useDialog();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -34,30 +32,11 @@ export default function CbtLayout({
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Prevent accidental tab closing
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue =
-        "Apakah Anda yakin ingin keluar dari halaman ujian? Progres Anda telah disimpan secara lokal.";
-      return e.returnValue;
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
-
-  const handleExitClick = () => {
-    showConfirm(
-      "Konfirmasi Keluar",
-      "Apakah Anda yakin ingin keluar ke halaman utama? Tenang, lembar progres jawaban Anda tetap aman disimpan di browser ini.",
-      onExit,
-    );
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground select-none">
@@ -102,14 +81,13 @@ export default function CbtLayout({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Timer Wrapper */}
             {timerComponent}
 
             <Button
               variant="outline"
               size="sm"
               className="text-destructive hover:bg-destructive/10"
-              onClick={handleExitClick}
+              onClick={onExit}
             >
               <LogOut className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Keluar</span>
@@ -118,7 +96,6 @@ export default function CbtLayout({
         </div>
       </header>
 
-      {/* Main Container */}
       <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
           {children}
