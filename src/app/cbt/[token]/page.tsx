@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useDialog } from "@/components/ui/dialog-provider";
 import CbtLayout from "@/components/cbt/CbtLayout";
@@ -19,6 +18,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Question } from "@/lib/types";
+import MatchingSelector from "@/components/cbt/MatchingSelector";
 
 interface ExamData {
   examId: string;
