@@ -78,17 +78,46 @@ export async function GET(
     }
     // ----------------------------------------------------
 
-    // 2. Sanitisasi Kunci Jawaban (Sangat Bagus & Aman)
+    // 2. Kumpulkan semua answerKey dari soal MATCHING untuk dibuatkan pool pilihan acak
+    const matchingQuestions = exam.assessment.questions.filter(
+      (q) => q.type === "MATCHING",
+    );
+    const poolMatchingAnswers = Array.from(
+      new Set(
+        matchingQuestions.map((q) => q.answerKey?.trim()).filter(Boolean),
+      ),
+    );
+
+    // Acak pool matching answers
+    const shuffledMatchingPool = [...poolMatchingAnswers];
+    for (let i = shuffledMatchingPool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledMatchingPool[i], shuffledMatchingPool[j]] = [
+        shuffledMatchingPool[j],
+        shuffledMatchingPool[i],
+      ];
+    }
+
+    // 3. Sanitisasi Kunci Jawaban (Sangat Bagus & Aman)
     const sanitizedQuestions = exam.assessment.questions.map((question) => {
+      // Jika bertipe MATCHING, gunakan pool matching answers yang sudah diacak sebagai pilihan opsi
+      const options =
+        question.type === "MATCHING"
+          ? shuffledMatchingPool.map((answer, index) => ({
+              id: `opt-match-${index}`,
+              optionText: answer,
+            }))
+          : question.options.map((option) => ({
+              id: option.id,
+              optionText: option.optionText,
+            }));
+
       return {
         id: question.id,
         type: question.type,
         questionText: question.questionText,
         order: question.order,
-        options: question.options.map((option) => ({
-          id: option.id,
-          optionText: option.optionText,
-        })),
+        options,
       };
     });
 

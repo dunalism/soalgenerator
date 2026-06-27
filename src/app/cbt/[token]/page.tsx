@@ -456,22 +456,15 @@ export default function CbtExamPage({
                 )}
 
                 {currentQuestion.type === "MATCHING" && (
-                  <div className="space-y-3">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide block">
-                      Tuliskan Pasangan/Definisi yang Sesuai
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Tulis istilah/definisi pasangan di sini..."
-                      value={currentAnswer.answerText || ""}
-                      onChange={(e) =>
-                        saveAnswer(currentQuestion.id, {
-                          answerText: e.target.value,
-                        })
-                      }
-                      className="h-10 text-base"
-                    />
-                  </div>
+                  <MatchingSelector
+                    question={currentQuestion}
+                    value={currentAnswer.answerText || ""}
+                    onChange={(textValue: string) =>
+                      saveAnswer(currentQuestion.id, {
+                        answerText: textValue,
+                      })
+                    }
+                  />
                 )}
               </div>
             </CardContent>
