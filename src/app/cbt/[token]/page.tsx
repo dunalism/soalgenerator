@@ -94,6 +94,7 @@ export default function CbtExamPage({
   const [jitterTime, setJitterTime] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Initialize and load data from localStorage
   useEffect(() => {
@@ -231,6 +232,12 @@ export default function CbtExamPage({
 
       const resData = await response.json();
 
+      if (response.status === 409) {
+        throw new Error(
+          resData.error || "Jawaban Anda sudah tersimpan sebelumnya.",
+        );
+      }
+
       if (!response.ok) {
         throw new Error(resData.error || "Gagal menyimpan lembar jawaban.");
       }
@@ -245,18 +252,27 @@ export default function CbtExamPage({
         "Ujian Selesai",
         "Lembar jawaban Anda berhasil dikirim dan disimpan dengan aman. Terima kasih!",
       );
+      setIsSuccess(true);
+
       router.push("/cbt/success");
     } catch (err: unknown) {
       console.error(err);
       const errMsg = err instanceof Error ? err.message : "Terjadi kesalahan.";
-      setSubmitError(
-        errMsg ||
-          "Gagal terhubung ke server. Lembar jawaban Anda tetap aman disimpan di laptop ini.",
-      );
-      showAlert(
-        "Koneksi Gagal",
-        "Sistem tidak dapat terhubung ke server untuk mengirimkan nilai. Lembar jawaban Anda telah di-backup dengan aman di browser ini. Silakan hubungi pengawas atau klik 'Kirim Ulang' setelah koneksi pulih.",
-      );
+      if (errMsg.includes("sudah tersimpan")) {
+        showAlert(
+          "Sudah Tersimpan",
+          "Jawaban Anda untuk ujian/tugas ini sudah tersimpan di server sebelumnya. Anda tidak perlu mengirimkannya lagi.",
+        );
+      } else {
+        setSubmitError(
+          errMsg ||
+            "Gagal terhubung ke server. Lembar jawaban Anda tetap aman disimpan di laptop ini.",
+        );
+        showAlert(
+          "Koneksi Gagal",
+          "Sistem tidak dapat terhubung ke server untuk mengirimkan nilai. Lembar jawaban Anda telah di-backup dengan aman di browser ini. Silakan hubungi pengawas atau klik 'Kirim Ulang' setelah koneksi pulih.",
+        );
+      }
     } finally {
       setSubmitting(false);
       setJitterTime(null);
@@ -300,6 +316,7 @@ export default function CbtExamPage({
 
   useEffect(() => {
     if (loading) return;
+    if (isSuccess) return;
     window.history.pushState(null, "", window.location.href);
     const handlePopState = () => {
       window.history.pushState(null, "", window.location.href);
@@ -319,7 +336,7 @@ export default function CbtExamPage({
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [loading, handleExitAttempt, isNavigating]);
+  }, [loading, handleExitAttempt, isNavigating, isSuccess]);
 
   if (loading || !student || !exam) {
     return (
