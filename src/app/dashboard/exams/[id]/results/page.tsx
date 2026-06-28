@@ -10,7 +10,6 @@ import {
   Loader2,
   AlertTriangle,
   ArrowLeft,
-  Download,
   CheckCircle,
   XCircle,
   FileSpreadsheet,
@@ -18,7 +17,6 @@ import {
   Users,
   TrendingUp,
   TrendingDown,
-  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,6 +93,8 @@ interface ItemAnalysisItem {
   wrongCount: number;
   totalCount: number;
   errorPercentage: number;
+  answerKey: string;
+  options?: Array<{ id: string; optionText: string; isCorrect: boolean }>;
 }
 
 interface ExamResultsResponse {
@@ -124,6 +124,10 @@ export default function ExamResultsPage({
     useState<StudentAnswerItem | null>(null);
   const [essayScore, setEssayScore] = useState<number>(100);
   const [isGradingLoading, setIsGradingLoading] = useState(false);
+
+  // Modal State untuk Detail Analisis Butir Soal
+  const [selectedAnalysisItem, setSelectedAnalysisItem] =
+    useState<ItemAnalysisItem | null>(null);
 
   // Monitor status autentikasi
   useEffect(() => {
@@ -480,7 +484,8 @@ export default function ExamResultsPage({
           </h2>
           <p className="text-xs text-muted-foreground">
             Mendeteksi tingkat kesulitan soal secara riil berdasarkan persentase
-            kesalahan siswa.
+            kesalahan siswa. Klik kartu soal untuk melihat detail soal dan kunci
+            jawaban.
           </p>
         </div>
 
@@ -495,11 +500,12 @@ export default function ExamResultsPage({
               return (
                 <Card
                   key={item.questionId}
-                  className={`p-4 flex flex-col justify-between border transition-all ${
+                  className={`p-4 flex flex-col justify-between border transition-all cursor-pointer hover:shadow-md ${
                     isHighError
                       ? "border-destructive/50 bg-destructive/5 hover:border-destructive"
                       : "hover:border-primary/30"
                   }`}
+                  onClick={() => setSelectedAnalysisItem(item)}
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -537,6 +543,124 @@ export default function ExamResultsPage({
           </div>
         )}
       </div>
+
+      {/* DIALOG DETAIL BUTIR SOAL */}
+      <Dialog
+        open={selectedAnalysisItem !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedAnalysisItem(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Detail Butir Soal #{selectedAnalysisItem?.order}
+            </DialogTitle>
+            <DialogDescription>
+              Detail informasi pertanyaan, pilihan jawaban, kunci jawaban, dan
+              statistik pengerjaan.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAnalysisItem && (
+            <div className="space-y-4 my-4">
+              {/* Question Text */}
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-muted-foreground uppercase">
+                  Pertanyaan:
+                </p>
+                <div
+                  className="p-4 bg-muted/30 rounded-lg text-sm font-semibold border"
+                  dangerouslySetInnerHTML={{
+                    __html: selectedAnalysisItem.questionText,
+                  }}
+                />
+              </div>
+
+              {/* Options / Answer Keys */}
+              {selectedAnalysisItem.type === "MULTIPLE_CHOICE" &&
+                selectedAnalysisItem.options && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-muted-foreground uppercase">
+                      Pilihan Jawaban:
+                    </p>
+                    <div className="space-y-2">
+                      {selectedAnalysisItem.options.map((opt) => (
+                        <div
+                          key={opt.id}
+                          className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${
+                            opt.isCorrect
+                              ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold"
+                              : "bg-background border-muted"
+                          }`}
+                        >
+                          <div className="mt-0.5">
+                            {opt.isCorrect ? (
+                              <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
+                            ) : (
+                              <div className="h-4 w-4 rounded-full border border-muted shrink-0" />
+                            )}
+                          </div>
+                          <div>{opt.optionText}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {selectedAnalysisItem.type !== "MULTIPLE_CHOICE" && (
+                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-lg space-y-1">
+                  <p className="text-[10px] font-bold uppercase text-emerald-600">
+                    Kunci Jawaban:
+                  </p>
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                    {selectedAnalysisItem.answerKey || "(Tidak Ada)"}
+                  </p>
+                </div>
+              )}
+
+              {/* Statistics */}
+              <div className="grid grid-cols-3 gap-2 bg-muted/40 p-4 rounded-lg text-center">
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Total Menjawab
+                  </p>
+                  <p className="text-lg font-black">
+                    {selectedAnalysisItem.totalCount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Salah
+                  </p>
+                  <p className="text-lg font-black text-rose-500">
+                    {selectedAnalysisItem.wrongCount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Tingkat Kesalahan
+                  </p>
+                  <p
+                    className={`text-lg font-black ${selectedAnalysisItem.errorPercentage >= 70 ? "text-destructive" : "text-primary"}`}
+                  >
+                    {selectedAnalysisItem.errorPercentage}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter showCloseButton={true}>
+            <Button
+              onClick={() => setSelectedAnalysisItem(null)}
+              variant="outline"
+            >
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* DIALOG PERIKSA ESAI */}
       <Dialog

@@ -92,6 +92,12 @@ export async function GET(
         wrongCount: wrongAnswers,
         totalCount: totalAnswers,
         errorPercentage,
+        answerKey: question.answerKey,
+        options: question.options.map((opt) => ({
+          id: opt.id,
+          optionText: opt.optionText,
+          isCorrect: opt.isCorrect,
+        })),
       };
     });
 
