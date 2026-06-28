@@ -23,15 +23,21 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { ExamItem } from "@/lib/types";
+import { Assessment, ExamItem } from "@/lib/types";
 
 interface ExamCardProps {
   exam: ExamItem;
+  assessment: Assessment[];
   onToggleActive: (id: string, currentStatus: boolean) => void;
   onDelete: (id: string, title: string) => void;
 }
 
-export function ExamCard({ exam, onToggleActive, onDelete }: ExamCardProps) {
+export function ExamCard({
+  exam,
+  assessment,
+  onToggleActive,
+  onDelete,
+}: ExamCardProps) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
 
@@ -128,7 +134,10 @@ export function ExamCard({ exam, onToggleActive, onDelete }: ExamCardProps) {
         <CardTitle className="leading-snug">{exam.title}</CardTitle>
         <CardDescription>
           Paket: {exam.assessment.title || "Tanpa Judul"} (
-          {exam.assessment.questionCount} Soal)
+          {assessment.map(
+            (a) => a.id === exam.assessmentId && a._count?.questions,
+          )}{" "}
+          Soal)
         </CardDescription>
       </CardHeader>
 

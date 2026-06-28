@@ -13,11 +13,11 @@ import { CreateExamDialog } from "@/components/dashboard/CreateExamDialog";
 import useSWRInfinite from "swr/infinite";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
-import { AssessmentOption, ExamItem } from "@/lib/types";
+import { Assessment, AssessmentOption, ExamItem } from "@/lib/types";
 
 interface AssessmentsListResponse {
   success: boolean;
-  assessments: AssessmentOption[];
+  assessments: Assessment[];
 }
 
 export default function ExamsDashboardPage() {
@@ -234,6 +234,7 @@ export default function ExamsDashboardPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {exams.map((exam) => (
             <ExamCard
+              assessment={assessments}
               key={exam.id}
               exam={exam}
               onToggleActive={handleToggleActive}
@@ -272,7 +273,7 @@ export default function ExamsDashboardPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         userId={userId || ""}
-        assessments={assessments}
+        assessments={assessments as AssessmentOption[]}
         onSuccess={(token) => {
           setIsModalOpen(false);
           showAlert(

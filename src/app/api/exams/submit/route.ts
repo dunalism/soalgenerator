@@ -89,10 +89,10 @@ export async function POST(request: Request) {
     let correctCount = 0;
     const questionsList = exam.assessment.questions;
 
-    // Klasifikasi soal untuk grading otomatis (Pilihan Ganda, Benar/Salah, dan Menjodohkan)
     const autoGradedQuestions = questionsList.filter(
       (q) =>
         q.type === "MULTIPLE_CHOICE" ||
+        q.type === "SHORT_ANSWER" ||
         q.type === "TRUE_FALSE" ||
         q.type === "MATCHING",
     );
@@ -155,11 +155,8 @@ export async function POST(request: Request) {
       };
     });
 
-    // Hitung nilai akhir (skor 0 - 100) berdasarkan soal pilihan ganda & benar/salah
     const score =
       totalAutoGraded > 0 ? (correctCount / totalAutoGraded) * 100 : 0;
-
-    // Status penilaian: jika ada soal SHORT_ANSWER atau MATCHING, tandai isGraded = false agar bisa dinilai manual
     const isGraded = !hasManualQuestions;
 
     // 7. Prisma Atomic Transaction (All-or-Nothing)

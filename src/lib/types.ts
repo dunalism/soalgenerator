@@ -76,6 +76,7 @@ export interface AssessmentOption {
 }
 export interface ExamItem {
   id: string;
+  assessmentId: string;
   title: string;
   token: string;
   duration: number;
