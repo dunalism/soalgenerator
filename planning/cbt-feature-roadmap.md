@@ -201,16 +201,37 @@ Fitur tanggap darurat jika koneksi internet sekolah lumpuh total di akhir sesi u
 
 ---
 
-### 📈 Tahap 7: Dashboard Penilaian & Statistik Siswa (Guru)
+### 📈 Tahap 7: Dashboard Penilaian & Statistik Siswa (Guru) - STATUS: SIAP EKSEKUSI 🚀
 
-Antarmuka bagi Guru untuk melihat, menganalisis, dan mengekspor hasil ujian.
+Membangun antarmuka analisis nilai, koreksi esai secara asinkron, statistik butir soal, dan fitur ekspor laporan nilai sekolah yang konsisten dengan desain UI guru sebelumnya.
 
-- [ ] **Halaman Hasil Sesi**: `/dashboard/exams/[id]/results`
-  - Menampilkan daftar siswa yang telah submit, waktu pengerjaan, skor akhir, dan status kelulusan.
-  - Menampilkan statistik per nomor soal (misal: "Soal nomor 5 salah dijawab oleh 80% siswa" - ini sangat membantu guru mengetahui materi mana yang belum dipahami kelas).
-  - Tombol ekspor data ke Excel / CSV untuk kebutuhan pelaporan nilai sekolah.
+- [ ] **Halaman Hasil Sesi Ujian**: `/dashboard/exams/[id]/results/page.tsx`
+  - **Layout & Konsistensi UI**:
+    - Terapkan data fetching menggunakan `useSWR` dari endpoint `/api/exams/[id]/results`.
+    - Tampilkan 4 Card Ringkasan Statistik Kelas di bagian atas menggunakan komponen `@/components/ui/card`:
+      - Rata-rata Nilai Kelas (Hanya menghitung nilai yang sudah final).
+      - Nilai Tertinggi.
+      - Nilai Terendah.
+      - Jumlah Siswa Sudah Submit.
 
----
+  - **Fitur 1: Tabel Hasil Ujian Siswa (Shadcn Table Style)**:
+    - Gunakan komponen `Table` dari `@/components/ui/table` untuk menampilkan daftar siswa.
+    - Kolom Tabel: Nama Siswa, No Absen/NISN, Waktu Mulai & Selesai, Durasi Pengerjaan, Skor Akhir (menggunakan Badge), dan Aksi.
+    - Tombol Aksi wajib berupa _"Periksa Esai"_. Ketika diklik, tombol ini akan membuka **Shadcn Dialog (`@/components/ui/dialog`)** yang menampilkan detail jawaban `SHORT_ANSWER` siswa tersebut.
+    - Di dalam Dialog tersebut, sediakan `Input` angka untuk memasukkan nilai esai, serta tombol _“Simpan & Kalkulasi Ulang Skor”_ yang menembak API PATCH.
+
+  - **Fitur 2: Analisis Statistik Butir Soal (Item Analysis)**:
+    - Buat section Grid (`grid grid-cols-2 md:grid-cols-4 gap-4`) di bawah tabel utama untuk memetakan performa per nomor soal.
+    - Tampilkan teks nomor soal beserta persentase tingkat kesalahan siswa (Contoh: _"Soal #5: 80% Siswa Salah"_).
+    - Jika sebuah nomor soal memiliki tingkat kesalahan siswa di atas 70%, wajib berikan border warna `border-destructive`, teks merah `text-destructive`, dan ikon `AlertTriangle` dari `lucide-react`.
+
+  - **Fitur 3: Ekspor Laporan Sekolah (Client-Side CSV Export)**:
+    - Sediakan satu tombol _"Ekspor CSV"_ berwarna `variant="outline"`.
+    - Implementasikan pembuatan file seutuhnya di sisi client (frontend) dengan mengonversi array data SWR menjadi string CSV murni menggunakan Blob objek, lalu mengunduhnya secara otomatis via elemen `<a>` tersembunyi.
+
+- [ ] **API Route Hasil & Koreksi**:
+  - `GET /api/exams/[id]/results`: Menarik data dari tabel `ExamAttempt` dan `StudentAnswer` yang terikat dengan `examId` tersebut menggunakan kueri agregasi Prisma.
+  - `PATCH /api/exams/[id]/score-essay`: Endpoint tunggal untuk menerima payload `{ attemptId, questionId, scoreEssay }` guna memperbarui nilai esai siswa di database sekaligus memicu kalkulasi ulang kolom `score` pada tabel `ExamAttempt`.
 
 ### 🏆 Tahap 8: Halaman Leaderboard Publik (Siswa)
 

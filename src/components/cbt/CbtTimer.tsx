@@ -38,7 +38,9 @@ export default function CbtTimer({
   const [timeLeft, setTimeLeft] = useState<number>(() => {
     // 1. Hitung sisa waktu matematika asli berdasarkan server timestamp (Kebenaran Mutlak)
     const totalDurationSeconds = durationMinutes * 60;
-    const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+    const elapsedSeconds = Math.floor(
+      (Date.now() - new Date(atob(startedAt.toString())).getTime()) / 1000,
+    );
     const serverCalculatedLeft = totalDurationSeconds - elapsedSeconds;
     const safeServerLeft = serverCalculatedLeft > 0 ? serverCalculatedLeft : 0;
 

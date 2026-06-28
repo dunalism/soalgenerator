@@ -7,7 +7,14 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { studentName, studentId, examToken, answers } = body;
+    const {
+      studentName,
+      studentId,
+      examToken,
+      answers,
+      submittedAt,
+      startedAt,
+    } = body;
 
     // 1. Validasi Kehadiran Input Utama
     if (!studentName || !examToken || !Array.isArray(answers)) {
@@ -167,9 +174,9 @@ export async function POST(request: Request) {
           examId: exam.id,
           studentName: trimmedName,
           studentId: studentId ? studentId.trim() : null,
-          startedAt: new Date(now.getTime() - exam.duration * 60 * 1000), // Estimasi mulai berdasarkan durasi pengerjaan
-          submittedAt: now,
-          score,
+          startedAt: startedAt,
+          submittedAt: submittedAt,
+          score: Math.round(score),
           isGraded,
         },
       });

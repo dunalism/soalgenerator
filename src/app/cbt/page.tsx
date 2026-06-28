@@ -61,7 +61,7 @@ export default function CbtLoginPage() {
           name: name.trim(),
           studentId: studentId.trim(),
           token: cleanToken,
-          startedAt: Date.now(),
+          startedAt: btoa(new Date().toString()),
         }),
       );
 

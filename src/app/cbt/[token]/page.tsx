@@ -194,7 +194,6 @@ export default function CbtExamPage({
     setSubmitting(true);
     setSubmitError(null);
 
-    // Prepare payload in the format specified by CBT Roadmap (Tahap 5)
     const formattedAnswers = questions.map((q) => {
       const ans = answers[q.id];
       return {
@@ -209,6 +208,8 @@ export default function CbtExamPage({
       studentId: student.studentId,
       examToken: token,
       answers: formattedAnswers,
+      startedAt: new Date(atob(student.startedAt.toString())),
+      submittedAt: new Date(),
     };
 
     // Calculate Jitter (0 to 15 seconds)
