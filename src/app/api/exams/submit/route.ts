@@ -89,13 +89,16 @@ export async function POST(request: Request) {
     let correctCount = 0;
     const questionsList = exam.assessment.questions;
 
-    // Klasifikasi soal untuk grading otomatis
+    // Klasifikasi soal untuk grading otomatis (Pilihan Ganda, Benar/Salah, dan Menjodohkan)
     const autoGradedQuestions = questionsList.filter(
-      (q) => q.type === "MULTIPLE_CHOICE" || q.type === "TRUE_FALSE",
+      (q) =>
+        q.type === "MULTIPLE_CHOICE" ||
+        q.type === "TRUE_FALSE" ||
+        q.type === "MATCHING",
     );
     const totalAutoGraded = autoGradedQuestions.length;
     const hasManualQuestions = questionsList.some(
-      (q) => q.type === "SHORT_ANSWER" || q.type === "MATCHING",
+      (q) => q.type === "SHORT_ANSWER",
     );
 
     // Map jawaban siswa berdasarkan questionId untuk pencarian cepat O(1)
@@ -130,8 +133,17 @@ export async function POST(request: Request) {
         if (isCorrect) {
           correctCount++;
         }
+      } else if (question.type === "MATCHING") {
+        const correctKey = question.answerKey
+          ? question.answerKey.trim().toLowerCase()
+          : "";
+        const studentKey = textAnswer ? textAnswer.trim().toLowerCase() : "";
+        isCorrect = correctKey !== "" && studentKey === correctKey;
+        if (isCorrect) {
+          correctCount++;
+        }
       } else {
-        // SHORT_ANSWER dan MATCHING default diset false dan butuh penilaian manual
+        // SHORT_ANSWER default diset false dan butuh penilaian manual
         isCorrect = false;
       }
 
