@@ -10,100 +10,21 @@ import {
   Loader2,
   AlertTriangle,
   ArrowLeft,
-  CheckCircle,
-  XCircle,
   FileSpreadsheet,
-  Award,
-  Users,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Import komponen terpisah
+import { ExamResultsStats } from "@/components/dashboard/results/ExamResultsStats";
+import { ExamResultsTable } from "@/components/dashboard/results/ExamResultsTable";
+import { ItemAnalysisSection } from "@/components/dashboard/results/ItemAnalysisSection";
+import { ItemAnalysisDialog } from "@/components/dashboard/results/ItemAnalysisDialog";
+import { EssayGradingDialog } from "@/components/dashboard/results/EssayGradingDialog";
 import {
-  Card,
-  CardTitle,
-  CardDescription,
-  CardHeader,
-  CardContent,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useDialog } from "@/components/ui/dialog-provider";
-
-interface ExamDetails {
-  id: string;
-  title: string;
-  token: string;
-  duration: number;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-  assessmentTitle: string;
-  questionsCount: number;
-}
-
-interface StatsSummary {
-  averageScore: number;
-  maxScore: number;
-  minScore: number;
-  totalAttempts: number;
-}
-
-interface StudentAnswerItem {
-  id: string;
-  questionId: string;
-  chosenOptionId: string | null;
-  textAnswer: string | null;
-  isCorrect: boolean | null;
-  questionText: string;
-  questionType: string;
-  answerKey: string;
-}
-
-interface ExamAttemptItem {
-  id: string;
-  studentName: string;
-  studentId: string | null;
-  startedAt: string;
-  submittedAt: string | null;
-  score: number | null;
-  isGraded: boolean;
-  answers: StudentAnswerItem[];
-}
-
-interface ItemAnalysisItem {
-  questionId: string;
-  questionText: string;
-  type: string;
-  order: number;
-  wrongCount: number;
-  totalCount: number;
-  errorPercentage: number;
-  answerKey: string;
-  options?: Array<{ id: string; optionText: string; isCorrect: boolean }>;
-}
-
-interface ExamResultsResponse {
-  success: boolean;
-  exam: ExamDetails;
-  stats: StatsSummary;
-  attempts: ExamAttemptItem[];
-  itemAnalysis: ItemAnalysisItem[];
-}
+  ExamAttemptItem,
+  ExamResultsResponse,
+  ItemAnalysisItem,
+} from "@/components/dashboard/results/types";
 
 export default function ExamResultsPage({
   params,
@@ -112,20 +33,13 @@ export default function ExamResultsPage({
 }) {
   const router = useRouter();
   const { id } = use(params);
-  const { showAlert } = useDialog();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Modal State untuk Koreksi Esai
+  // Modal States
   const [selectedAttempt, setSelectedAttempt] =
     useState<ExamAttemptItem | null>(null);
-  const [gradingQuestion, setGradingQuestion] =
-    useState<StudentAnswerItem | null>(null);
-  const [essayScore, setEssayScore] = useState<number>(100);
-  const [isGradingLoading, setIsGradingLoading] = useState(false);
-
-  // Modal State untuk Detail Analisis Butir Soal
   const [selectedAnalysisItem, setSelectedAnalysisItem] =
     useState<ItemAnalysisItem | null>(null);
 
@@ -154,22 +68,6 @@ export default function ExamResultsPage({
   const attempts = data?.attempts || [];
   const itemAnalysis = data?.itemAnalysis || [];
 
-  // Helper menghilangkan HTML Tag untuk analisis butir soal
-  const stripHtml = (html: string) => {
-    if (!html) return "";
-    return html.replace(/<[^>]*>/g, "");
-  };
-
-  // Format durasi pengerjaan siswa
-  const formatDuration = (startedAt: string, submittedAt: string | null) => {
-    if (!submittedAt) return "-";
-    const diff =
-      new Date(submittedAt).getTime() - new Date(startedAt).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    return `${minutes}m ${seconds}d`;
-  };
-
   // Format tanggal display
   const formatDateDisplay = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -180,6 +78,16 @@ export default function ExamResultsPage({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Format durasi pengerjaan siswa
+  const formatDuration = (startedAt: string, submittedAt: string | null) => {
+    if (!submittedAt) return "-";
+    const diff =
+      new Date(submittedAt).getTime() - new Date(startedAt).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    return `${minutes}m ${seconds}d`;
   };
 
   // Ekspor CSV murni client-side
@@ -196,7 +104,7 @@ export default function ExamResultsPage({
       "Status Penilaian",
     ];
 
-    const rows = attempts.map((att) => [
+    const rows = attempts.map((att: ExamAttemptItem) => [
       att.studentId || "-",
       att.studentName,
       att.startedAt ? formatDateDisplay(att.startedAt) : "-",
@@ -208,7 +116,9 @@ export default function ExamResultsPage({
 
     const csvContent = [
       headers.join(","),
-      ...rows.map((row) => row.map((val) => `"${val}"`).join(",")),
+      ...rows.map((row: (string | number)[]) =>
+        row.map((val: string | number) => `"${val}"`).join(","),
+      ),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -224,51 +134,10 @@ export default function ExamResultsPage({
     document.body.removeChild(link);
   };
 
-  // Submit Penilaian Esai ke API
-  const handleSaveEssayGrade = async () => {
-    if (!selectedAttempt || !gradingQuestion) return;
-
-    setIsGradingLoading(true);
-    try {
-      const response = await fetch(`/api/exams/${id}/score-essay`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          attemptId: selectedAttempt.id,
-          questionId: gradingQuestion.questionId,
-          scoreEssay: essayScore,
-        }),
-      });
-
-      if (response.ok) {
-        showAlert("Sukses", "Nilai esai berhasil disimpan!");
-
-        // Mutate SWR cache
-        await mutate();
-
-        // Update selectedAttempt state agar dialog ter-refresh dengan data terbaru
-        const updatedResponse = await fetch(`/api/exams/${id}/results`);
-        if (updatedResponse.ok) {
-          const updatedData: ExamResultsResponse = await updatedResponse.json();
-          const nextAttempt = updatedData.attempts.find(
-            (a) => a.id === selectedAttempt.id,
-          );
-          if (nextAttempt) {
-            setSelectedAttempt(nextAttempt);
-          }
-        }
-
-        setGradingQuestion(null);
-      } else {
-        const result = await response.json();
-        showAlert("Gagal", result.error || "Gagal menyimpan penilaian esai.");
-      }
-    } catch (err) {
-      console.error(err);
-      showAlert("Error", "Terjadi kesalahan jaringan.");
-    } finally {
-      setIsGradingLoading(false);
-    }
+  // Handler setelah grading esai sukses
+  const handleGradeSuccess = async (updatedAttempt: ExamAttemptItem) => {
+    await mutate();
+    setSelectedAttempt(updatedAttempt);
   };
 
   if (authLoading || isLoading) {
@@ -302,7 +171,7 @@ export default function ExamResultsPage({
   }
 
   // Cek apakah ujian ini memiliki soal SHORT_ANSWER / Uraian
-  const hasEssayQuestions = attempts.some((att) =>
+  const hasEssayQuestions = attempts.some((att: ExamAttemptItem) =>
     att.answers.some((ans) => ans.questionType === "SHORT_ANSWER"),
   );
 
@@ -341,464 +210,34 @@ export default function ExamResultsPage({
       </div>
 
       {/* STATS OVERVIEW CARDS */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="flex items-center gap-4 p-5">
-          <div className="rounded-full bg-primary/10 p-3 text-primary">
-            <TrendingUp className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">
-              Rata-Rata Nilai
-            </p>
-            <p className="text-2xl font-black">{stats?.averageScore ?? 0}</p>
-          </div>
-        </Card>
-
-        <Card className="flex items-center gap-4 p-5">
-          <div className="rounded-full bg-emerald-500/10 p-3 text-emerald-500">
-            <Award className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">
-              Nilai Tertinggi
-            </p>
-            <p className="text-2xl font-black">{stats?.maxScore ?? 0}</p>
-          </div>
-        </Card>
-
-        <Card className="flex items-center gap-4 p-5">
-          <div className="rounded-full bg-rose-500/10 p-3 text-rose-500">
-            <TrendingDown className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">
-              Nilai Terendah
-            </p>
-            <p className="text-2xl font-black">{stats?.minScore ?? 0}</p>
-          </div>
-        </Card>
-
-        <Card className="flex items-center gap-4 p-5">
-          <div className="rounded-full bg-blue-500/10 p-3 text-blue-500">
-            <Users className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">
-              Siswa Mengerjakan
-            </p>
-            <p className="text-2xl font-black">
-              {stats?.totalAttempts ?? 0}{" "}
-              <span className="text-xs text-muted-foreground">Siswa</span>
-            </p>
-          </div>
-        </Card>
-      </div>
+      <ExamResultsStats stats={stats} />
 
       {/* TABLE SECTION */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lembar Jawaban & Hasil Siswa</CardTitle>
-          <CardDescription>
-            Rincian nilai siswa yang telah mensubmit lembar pengerjaan CBT.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {attempts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Belum ada siswa yang mengirimkan lembar jawaban.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">Absen / ID</TableHead>
-                  <TableHead>Nama Lengkap</TableHead>
-                  <TableHead>Mulai</TableHead>
-                  <TableHead>Selesai</TableHead>
-                  <TableHead>Durasi</TableHead>
-                  <TableHead className="text-right">Skor</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attempts.map((attempt) => (
-                  <TableRow key={attempt.id}>
-                    <TableCell className="font-mono text-xs">
-                      {attempt.studentId || "-"}
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      {attempt.studentName}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {attempt.startedAt
-                        ? formatDateDisplay(attempt.startedAt)
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {attempt.submittedAt
-                        ? formatDateDisplay(attempt.submittedAt)
-                        : "-"}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDuration(attempt.startedAt, attempt.submittedAt)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          attempt.score !== null && attempt.score >= 75
-                            ? "bg-emerald-500/10 text-emerald-500"
-                            : attempt.score !== null && attempt.score >= 50
-                              ? "bg-amber-500/10 text-amber-500"
-                              : "bg-rose-500/10 text-rose-500"
-                        }`}
-                      >
-                        {attempt.score !== null
-                          ? attempt.score
-                          : "Belum Dinilai"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {hasEssayQuestions && (
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => setSelectedAttempt(attempt)}
-                        >
-                          Periksa Esai
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <ExamResultsTable
+        attempts={attempts}
+        hasEssayQuestions={hasEssayQuestions}
+        onPeriksaEsai={setSelectedAttempt}
+      />
 
       {/* ITEM ANALYSIS SECTION */}
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight">
-            Analisis Butir Soal (Item Analysis)
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Mendeteksi tingkat kesulitan soal secara riil berdasarkan persentase
-            kesalahan siswa. Klik kartu soal untuk melihat detail soal dan kunci
-            jawaban.
-          </p>
-        </div>
-
-        {itemAnalysis.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Belum ada data analisis butir soal.
-          </p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {itemAnalysis.map((item) => {
-              const isHighError = item.errorPercentage >= 70;
-              return (
-                <Card
-                  key={item.questionId}
-                  className={`p-4 flex flex-col justify-between border transition-all cursor-pointer hover:shadow-md ${
-                    isHighError
-                      ? "border-destructive/50 bg-destructive/5 hover:border-destructive"
-                      : "hover:border-primary/30"
-                  }`}
-                  onClick={() => setSelectedAnalysisItem(item)}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-muted-foreground uppercase">
-                        Soal #{item.order}
-                      </span>
-                      {isHighError && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-destructive">
-                          <AlertTriangle className="h-3.5 w-3.5 animate-pulse" />{" "}
-                          SULIT
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs font-medium text-foreground line-clamp-3">
-                      {stripHtml(item.questionText) || "Soal tanpa teks"}
-                    </p>
-                  </div>
-                  <div className="pt-4 border-t mt-3 flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground">
-                      Tingkat Kesalahan Siswa:
-                    </p>
-                    <p
-                      className={`text-sm font-black ${
-                        isHighError
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {item.errorPercentage}%
-                    </p>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <ItemAnalysisSection
+        itemAnalysis={itemAnalysis}
+        onSelectCard={setSelectedAnalysisItem}
+      />
 
       {/* DIALOG DETAIL BUTIR SOAL */}
-      <Dialog
-        open={selectedAnalysisItem !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedAnalysisItem(null);
-        }}
-      >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Detail Butir Soal #{selectedAnalysisItem?.order}
-            </DialogTitle>
-            <DialogDescription>
-              Detail informasi pertanyaan, pilihan jawaban, kunci jawaban, dan
-              statistik pengerjaan.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedAnalysisItem && (
-            <div className="space-y-4 my-4">
-              {/* Question Text */}
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-muted-foreground uppercase">
-                  Pertanyaan:
-                </p>
-                <div
-                  className="p-4 bg-muted/30 rounded-lg text-sm font-semibold border"
-                  dangerouslySetInnerHTML={{
-                    __html: selectedAnalysisItem.questionText,
-                  }}
-                />
-              </div>
-
-              {/* Options / Answer Keys */}
-              {selectedAnalysisItem.type === "MULTIPLE_CHOICE" &&
-                selectedAnalysisItem.options && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-muted-foreground uppercase">
-                      Pilihan Jawaban:
-                    </p>
-                    <div className="space-y-2">
-                      {selectedAnalysisItem.options.map((opt) => (
-                        <div
-                          key={opt.id}
-                          className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${
-                            opt.isCorrect
-                              ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold"
-                              : "bg-background border-muted"
-                          }`}
-                        >
-                          <div className="mt-0.5">
-                            {opt.isCorrect ? (
-                              <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
-                            ) : (
-                              <div className="h-4 w-4 rounded-full border border-muted shrink-0" />
-                            )}
-                          </div>
-                          <div>{opt.optionText}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {selectedAnalysisItem.type !== "MULTIPLE_CHOICE" && (
-                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-lg space-y-1">
-                  <p className="text-[10px] font-bold uppercase text-emerald-600">
-                    Kunci Jawaban:
-                  </p>
-                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                    {selectedAnalysisItem.answerKey || "(Tidak Ada)"}
-                  </p>
-                </div>
-              )}
-
-              {/* Statistics */}
-              <div className="grid grid-cols-3 gap-2 bg-muted/40 p-4 rounded-lg text-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                    Total Menjawab
-                  </p>
-                  <p className="text-lg font-black">
-                    {selectedAnalysisItem.totalCount}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                    Salah
-                  </p>
-                  <p className="text-lg font-black text-rose-500">
-                    {selectedAnalysisItem.wrongCount}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                    Tingkat Kesalahan
-                  </p>
-                  <p
-                    className={`text-lg font-black ${selectedAnalysisItem.errorPercentage >= 70 ? "text-destructive" : "text-primary"}`}
-                  >
-                    {selectedAnalysisItem.errorPercentage}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter showCloseButton={true}>
-            <Button
-              onClick={() => setSelectedAnalysisItem(null)}
-              variant="outline"
-            >
-              Tutup
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ItemAnalysisDialog
+        selectedAnalysisItem={selectedAnalysisItem}
+        onClose={() => setSelectedAnalysisItem(null)}
+      />
 
       {/* DIALOG PERIKSA ESAI */}
-      <Dialog
-        open={selectedAttempt !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedAttempt(null);
-        }}
-      >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Koreksi Jawaban Esai Siswa</DialogTitle>
-            <DialogDescription>
-              Menilai jawaban soal bertipe SHORT_ANSWER (Uraian) untuk siswa{" "}
-              <strong>{selectedAttempt?.studentName}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 my-4">
-            {selectedAttempt?.answers
-              .filter((ans) => ans.questionType === "SHORT_ANSWER")
-              .map((ans, idx) => (
-                <Card key={ans.id} className="p-4 space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-muted-foreground">
-                      Pertanyaan #{idx + 1}
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {stripHtml(ans.questionText)}
-                    </p>
-                  </div>
-
-                  <div className="bg-muted p-3 rounded-lg space-y-1">
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                      Jawaban Siswa:
-                    </p>
-                    <p className="text-sm italic font-medium">
-                      {ans.textAnswer
-                        ? `"${ans.textAnswer}"`
-                        : "(Tidak Menjawab)"}
-                    </p>
-                  </div>
-
-                  <div className="bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-lg space-y-1">
-                    <p className="text-[10px] font-bold uppercase text-emerald-500">
-                      Kunci Jawaban Guru:
-                    </p>
-                    <p className="text-sm font-semibold text-emerald-600">
-                      {ans.answerKey}
-                    </p>
-                  </div>
-
-                  {gradingQuestion?.id === ans.id ? (
-                    <div className="bg-muted/40 p-4 rounded-lg space-y-3">
-                      <p className="text-xs font-semibold">
-                        Tentukan Kebenaran Jawaban:
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          className={`flex-1 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10
-                            ${essayScore == 100 && "bg-emerald-500/10!"}
-                            `}
-                          onClick={() => {
-                            setEssayScore(100);
-                          }}
-                        >
-                          <CheckCircle className="mr-1.5 h-4 w-4" /> Benar
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          className={`flex-1 text-destructive hover:text-destructive/90 hover:bg-destructive/10
-                            ${essayScore == 0 && "bg-destructive/10!"}`}
-                          onClick={() => {
-                            setEssayScore(0);
-                          }}
-                        >
-                          <XCircle className="mr-1.5 h-4 w-4" /> Salah
-                        </Button>
-                      </div>
-
-                      <div className="flex justify-end gap-2 pt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setGradingQuestion(null)}
-                        >
-                          Batal
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={handleSaveEssayGrade}
-                          disabled={isGradingLoading}
-                        >
-                          {isGradingLoading ? "Menyimpan..." : "Simpan Nilai"}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <p className="text-xs">
-                        Status Saat Ini:{" "}
-                        {ans.isCorrect === true ? (
-                          <span className="text-emerald-500 font-bold">
-                            BENAR
-                          </span>
-                        ) : ans.isCorrect === false ? (
-                          <span className="text-destructive font-bold">
-                            SALAH
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground font-semibold">
-                            BELUM DIPERIKSA
-                          </span>
-                        )}
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={() => {
-                          setGradingQuestion(ans);
-                          setEssayScore(ans.isCorrect === true ? 100 : 0);
-                        }}
-                      >
-                        Koreksi
-                      </Button>
-                    </div>
-                  )}
-                </Card>
-              ))}
-          </div>
-
-          <DialogFooter showCloseButton={true}>
-            <Button onClick={() => setSelectedAttempt(null)} variant="outline">
-              Selesai Memeriksa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EssayGradingDialog
+        selectedAttempt={selectedAttempt}
+        examId={id}
+        onClose={() => setSelectedAttempt(null)}
+        onGradeSuccess={handleGradeSuccess}
+      />
     </div>
   );
 }
