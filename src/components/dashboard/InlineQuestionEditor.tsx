@@ -192,6 +192,7 @@ export function InlineQuestionEditor({
       type: questionType,
       options: mappedOptions,
       answerKey,
+      order: initialQuestion?.order || (index !== undefined ? index + 1 : 1),
     };
 
     onSave(updatedQuestion);

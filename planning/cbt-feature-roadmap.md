@@ -124,15 +124,15 @@ Membangun antarmuka bagi Guru untuk mengelola sesi ujian.
 
 ---
 
-### 🎨 Tahap 4: UI & Engine CBT Client-Side (Siswa) - SIAP EKSEKUSI 🚀
+### 🎨 Tahap 4: UI & Engine CBT Client-Side (Siswa) - (SELESAI ✅)
 
 Membangun halaman pelaksanaan ujian untuk siswa yang andal, offline-safe, dan bebas gangguan.
 
-- [ ] **Halaman Login CBT**: `/cbt`
+- [x] **Halaman Login CBT**: `/cbt`
   - Formulir sederhana: Nama Lengkap, No Absen/NISN, dan Token Ujian.
   - AI Agent Note: Lakukan fetch ke API Route Statis `/api/exams/[token]/questions`. Jika sukses (status 200), simpan data identitas siswa + data soal ke dalam State/Context, lalu arahkan (router.push) ke `/cbt/[token]`. Jika gagal (status 403/404), tampilkan alert pesan error asli dari server (misal: "Ujian belum aktif").
 
-- [ ] **Halaman Pelaksanaan Ujian**: `/cbt/[token]`
+- [x] **Halaman Pelaksanaan Ujian**: `/cbt/[token]`
   - **Focus Mode Layout**: Buat layout khusus bersih tanpa navbar/sidebar dashboard guru. Gunakan deteksi `window.addEventListener('beforeunload')` untuk mencegah siswa tidak sengaja menutup tab ujian.
   - **Sidebar Navigasi Soal**: Merender kotak-kotak nomor soal. Setiap kotak memiliki indikator warna dinamis berdasarkan State Jawaban:
     - Abu-abu = Belum dijawab (`UNANSWERED`)
@@ -144,21 +144,47 @@ Membangun halaman pelaksanaan ujian untuk siswa yang andal, offline-safe, dan be
     - Setiap siswa memilih opsi jawaban atau mengubah status ragu-ragu, langsung perbarui `localStorage` secara instan (tanpa menunggu debouncing).
     - Jika sisa waktu mencapai `0`, kunci layar dan otomatis pemicu fungsi `handleSubmitUjian()`.
 
-### 🔒 Tahap 5: Keamanan & Server-Side Grading Engine
+### 🔒 Tahap 5: Keamanan & Server-Side Grading Engine (SELESAI ✅)
 
-Membangun endpoint API penerimaan jawaban yang anti-cheat dan hemat database.
+Membangun endpoint API penerimaan jawaban yang anti-cheat, tahan duplikasi, dan hemat database.
 
-- [ ] **API Route**: `POST /api/exams/submit`
-  - Menerima payload lembar jawaban batch siswa: `studentName`, `studentId`, `examToken`, `answers: [{ questionId, chosenOptionId, textAnswer }]`.
-  - Lakukan throttling: kueri database untuk mengambil kunci jawaban asli berdasarkan `examToken`.
+- [x] **API Route**: `POST /api/exams/submit`
+  - **Payload Format**: Menerima data dari client berupa:
+
+    ```json
+    {
+      "studentName": "Nama Siswa",
+      "studentId": "NISN/No Absen",
+      "examToken": "TOKEN-UJIAN",
+      "answers": [
+        {
+          "questionId": "uuid-soal",
+          "chosenOptionId": "uuid-opsi-atau-null",
+          "textAnswer": "string-atau-null"
+        }
+      ]
+    }
+    ```
+
+  - **Strict Server Validation (Anti-Cheat & Latency Tolerance)**:
+    - Ambil data `Exam` beserta `endTime`, `isActive`, dan seluruh kunci jawaban asli (`questions` + `options`) dari database berdasarkan `examToken`.
+    - **Validasi 1 (Status Ujian)**: Jika `exam.isActive === false`, tolak dengan status 403 (Ujian sudah ditutup).
+    - **Validasi 2 (Batas Waktu)**: Bandingkan `new Date()` server dengan `exam.endTime`. Berikan toleransi waktu (grace period) sebesar **60 detik** untuk mengakomodasi keterlambatan pengiriman paket data akibat internet 500kbps. Jika lewat dari batas toleransi, tolak dengan status 403.
+    - **Validasi 3 (Anti Double-Submit)**: Lakukan pengecekan ke tabel `ExamAttempt`. Jika kombinasi `studentId` + `examId` sudah ada di database, langsung tolak dengan status 409 (Jawaban Anda sudah tersimpan sebelumnya).
+
   - **Server-side Autograding Logic**:
-    - Sistem otomatis mencocokkan `chosenOptionId` dengan opsi yang `isCorrect === true` dari database untuk Pilihan Ganda.
-    - Sistem mencocokkan `textAnswer` (case-insensitive) untuk Benar/Salah.
-    - Menghitung skor akhir dengan rumus standar: `(Jumlah Benar / Total Soal) * 100`.
-  - Menyimpan entri usaha ujian siswa (`ExamAttempt`) dan rincian jawaban (`StudentAnswer[]`) dalam **satu transaksi kueri Prisma tunggal (Prisma Transaction)** untuk mencegah kebocoran koneksi DB.
-  - Mengirimkan respons `200 OK` beserta nilai (atau pesan sukses).
+    - Siapkan variabel `score = 0` dan `correctCount = 0`.
+    - Lakukan perulangan untuk mencocokkan jawaban siswa dengan database:
+      - **MULTIPLE_CHOICE**: Cari opsi di database untuk `questionId` tersebut yang memiliki `isCorrect === true`. Jika `chosenOptionId` siswa sama dengan id opsi yang benar tersebut, maka jawaban dianggap **Benar**.
+      - **TRUE_FALSE**: Bandingkan `textAnswer` siswa secara _case-insensitive_ (`.toLowerCase().trim()`) dengan `answerKey` di database (harus bernilai 'benar' atau 'salah').
+      - **SHORT_ANSWER & MATCHING**: Secara bawaan, set status awal benar/salah sebagai `false` atau buat field khusus `isGraded: false` (karena jenis soal ini membutuhkan penilaian/koreksi manual oleh Guru di dashboard nanti). Namun, string `textAnswer` siswa wajib disimpan utuh.
+    - Hitung nilai akhir Pilihan Ganda & Benar/Salah menggunakan rumus: `(correctCount / totalSoalDiHitung) * 100`.
 
----
+  - **Prisma Atomic Transaction (All-or-Nothing)**:
+    - Eksekusi penyimpanan ke database dalam **satu blok `prisma.$transaction`** tunggal untuk efisiensi koneksi internet cloud:
+      1. Buat 1 entri baru di tabel `ExamAttempt` (menyimpan data siswa, score, dan waktu selesai).
+      2. Buat entri massal menggunakan `createMany` ke tabel rincian jawaban siswa (menyimpan `questionId`, `chosenOptionId`, `textAnswer`, dan status `isCorrect`).
+  - **Response**: Mengembalikan status `200 OK` dengan JSON `{ success: true, message: "Lembar jawaban berhasil disimpan." }`. Dilarang menampilkan nilai akhir ke siswa di response ini (nilai hanya boleh dilihat Guru di dashboard).
 
 ### 💾 Tahap 6: Backup Offline & Fitur Penyelamat Pengawas (.cbt)
 
