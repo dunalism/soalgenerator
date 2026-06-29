@@ -141,7 +141,7 @@ model ExamAttempt {
 
   studentName String          @db.VarChar(255) // Nama lengkap siswa
   studentId   String?         @db.VarChar(100) // Nomor absen atau NISN siswa (opsional)
-
+  durationSeconds Int     
   startedAt   DateTime        @default(now()) // Kapan siswa mulai membuka soal
   submittedAt DateTime?       // Kapan lembar jawaban sukses dikirim ke server
 

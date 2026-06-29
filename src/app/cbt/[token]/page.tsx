@@ -209,6 +209,9 @@ export default function CbtExamPage({
       examToken: token,
       answers: formattedAnswers,
       startedAt: new Date(atob(student.startedAt.toString())),
+      durationSeconds:
+        new Date().getTime() -
+        new Date(atob(student.startedAt.toString())).getTime(),
       submittedAt: new Date(),
     };
 

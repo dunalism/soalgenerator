@@ -28,12 +28,13 @@ export function ExamResultsTable({
   onPeriksaEsai,
 }: ExamResultsTableProps) {
   // Format durasi pengerjaan siswa
-  const formatDuration = (startedAt: string, submittedAt: string | null) => {
+  const formatDuration = (
+    durationSeconds: number,
+    submittedAt: string | null,
+  ) => {
     if (!submittedAt) return "-";
-    const diff =
-      new Date(submittedAt).getTime() - new Date(startedAt).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
+    const minutes = Math.floor(durationSeconds / 60000);
+    const seconds = Math.floor((durationSeconds % 60000) / 1000);
     return `${minutes}m ${seconds}d`;
   };
 
@@ -97,7 +98,10 @@ export function ExamResultsTable({
                       : "-"}
                   </TableCell>
                   <TableCell className="text-xs">
-                    {formatDuration(attempt.startedAt, attempt.submittedAt)}
+                    {formatDuration(
+                      attempt.durationSeconds,
+                      attempt.submittedAt,
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <span

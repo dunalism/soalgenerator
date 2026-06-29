@@ -14,6 +14,7 @@ export async function POST(request: Request) {
       answers,
       submittedAt,
       startedAt,
+      durationSeconds,
     } = body;
 
     // 1. Validasi Kehadiran Input Utama
@@ -176,6 +177,7 @@ export async function POST(request: Request) {
           studentId: studentId ? studentId.trim() : null,
           startedAt: startedAt,
           submittedAt: submittedAt,
+          durationSeconds: durationSeconds,
           score: Math.round(score),
           isGraded,
         },

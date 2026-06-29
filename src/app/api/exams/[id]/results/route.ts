@@ -126,6 +126,7 @@ export async function GET(
         studentId: att.studentId,
         startedAt: att.startedAt,
         submittedAt: att.submittedAt,
+        durationSeconds: att.durationSeconds,
         score: att.score,
         isGraded: att.isGraded,
         answers: att.answers.map((ans) => ({

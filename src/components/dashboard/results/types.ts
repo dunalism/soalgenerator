@@ -29,6 +29,7 @@ export interface StudentAnswerItem {
 }
 
 export interface ExamAttemptItem {
+  durationSeconds: number;
   id: string;
   studentName: string;
   studentId: string | null;

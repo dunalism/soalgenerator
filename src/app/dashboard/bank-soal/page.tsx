@@ -298,7 +298,7 @@ export default function BankSoalPage() {
             </Button>
           ) : (
             <Button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/dashboard/generate")}
               variant="outline"
               className="mt-2"
             >

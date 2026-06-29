@@ -201,11 +201,11 @@ Fitur tanggap darurat jika koneksi internet sekolah lumpuh total di akhir sesi u
 
 ---
 
-### 📈 Tahap 7: Dashboard Penilaian & Statistik Siswa (Guru) - STATUS: SIAP EKSEKUSI 🚀
+### 📈 Tahap 7: Dashboard Penilaian & Statistik Siswa (Guru) - STATUS: (SELESAI ✅)
 
 Membangun antarmuka analisis nilai, koreksi esai secara asinkron, statistik butir soal, dan fitur ekspor laporan nilai sekolah yang konsisten dengan desain UI guru sebelumnya.
 
-- [ ] **Halaman Hasil Sesi Ujian**: `/dashboard/exams/[id]/results/page.tsx`
+- [x] **Halaman Hasil Sesi Ujian**: `/dashboard/exams/[id]/results/page.tsx`
   - **Layout & Konsistensi UI**:
     - Terapkan data fetching menggunakan `useSWR` dari endpoint `/api/exams/[id]/results`.
     - Tampilkan 4 Card Ringkasan Statistik Kelas di bagian atas menggunakan komponen `@/components/ui/card`:
@@ -229,21 +229,37 @@ Membangun antarmuka analisis nilai, koreksi esai secara asinkron, statistik buti
     - Sediakan satu tombol _"Ekspor CSV"_ berwarna `variant="outline"`.
     - Implementasikan pembuatan file seutuhnya di sisi client (frontend) dengan mengonversi array data SWR menjadi string CSV murni menggunakan Blob objek, lalu mengunduhnya secara otomatis via elemen `<a>` tersembunyi.
 
-- [ ] **API Route Hasil & Koreksi**:
+- [x] **API Route Hasil & Koreksi**:
   - `GET /api/exams/[id]/results`: Menarik data dari tabel `ExamAttempt` dan `StudentAnswer` yang terikat dengan `examId` tersebut menggunakan kueri agregasi Prisma.
   - `PATCH /api/exams/[id]/score-essay`: Endpoint tunggal untuk menerima payload `{ attemptId, questionId, scoreEssay }` guna memperbarui nilai esai siswa di database sekaligus memicu kalkulasi ulang kolom `score` pada tabel `ExamAttempt`.
 
-### 🏆 Tahap 8: Halaman Leaderboard Publik (Siswa)
+### 🏆 Tahap 8: Halaman Leaderboard Publik (Siswa) - STATUS: SIAP EKSEKUSI 🚀
 
-Membangun antarmuka papan peringkat publik yang responsif tanpa beban login.
+Membangun antarmuka papan peringkat publik yang responsif, berkinerja tinggi, dan bebas beban login yang selaras dengan tema UI aplikasi siswa sebelumnya.
 
-- [ ] **Halaman `/leaderboard`**:
-  - Endpoint kueri ringan untuk menarik sesi `Exam` yang telah selesai (`isActive: false` atau `endTime < now`) dan memiliki `showLeaderboard: true`.
-- [ ] **Halaman `/leaderboard/[token]`**:
-  - Mengambil daftar peserta ujian dari `ExamAttempt` yang diurutkan berdasarkan skor tertinggi dan durasi tersingkat.
-  - Tampilan modern dengan warna podium emas, perak, dan perunggu yang seru untuk siswa.
+- [ ] **Halaman Daftar Ujian Publik**: `/leaderboard/page.tsx`
+  - **Layout & Keamanan Data**:
+    - Buat halaman publik tanpa proteksi Firebase Authentication agar siswa dapat melihat langsung tanpa login.
+    - Fetch data menggunakan `useSWR` dari endpoint `/api/leaderboards`.
+    - Tampilkan daftar ujian yang sudah selesai dalam bentuk komponen Grid Card (`grid grid-cols-1 md:grid-cols-3 gap-6`) menggunakan komponen `@/components/ui/card`.
+    - Hanya tampilkan ujian yang memenuhi kriteria mutlak: `showLeaderboard: true` dan `isActive: false` (Ujian telah ditutup resmi oleh Guru).
 
----
+- [ ] **Halaman Papan Peringkat Sesi**: `/leaderboard/[token]/page.tsx`
+  - **Fitur 1: Komponen Podium Tiga Besar (Top 3 Podium)**:
+    - Di bagian atas halaman, wajib merender komponen visual 3 blok podium vertikal dengan urutan posisi kiri-ke-kanan: Juara 2 (Perak), Juara 1 (Emas), Juara 3 (Perunggu).
+    - Blok Juara 1 (Emas) wajib dibuat paling tinggi dengan style `bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400`.
+    - Blok Juara 2 (Perak) menggunakan style `bg-slate-400/10 border-slate-400 text-slate-500`.
+    - Blok Juara 3 (Perunggu) menggunakan style `bg-orange-600/10 border-orange-600 text-orange-700`.
+    - Tampilkan Nama Siswa, Skor Akhir, dan waktu durasi pengerjaan di atas masing-masing blok podium tersebut.
+
+  - **Fitur 2: Tabel Peringkat Susulan (Peringkat 4 dst)**:
+    - Gunakan komponen `Table` dari `@/components/ui/table` untuk menampilkan siswa dari peringkat 4 hingga selesai.
+    - Kolom Tabel: Peringkat (Angka), Nama Siswa, No Absen/NISN, Durasi Pengerjaan, dan Skor Akhir.
+    - Terapkan style baris zebra (`even:bg-muted/40`) agar nyaman dibaca pada layar HP siswa.
+
+- [ ] **API Route Leaderboard**:
+  - `GET /api/leaderboards`: Mengambil daftar sesi ujian yang sudah tidak aktif (`isActive: false`) dan memiliki bendera `showLeaderboard: true`.
+  - `GET /api/leaderboards/[token]`: Mengambil data `ExamAttempt` berdasarkan token ujian. Urutkan hasil kueri di tingkat database seutuhnya (`orderBy`) menggunakan dua parameter prioritas: `score: "desc"` (skor tertinggi) kemudian `durationSeconds: "asc"` (waktu tercepat).
 
 ## 💡 CATATAN KHUSUS UNTUK KODE KONSISTEN & SOLUTION EMAS
 
