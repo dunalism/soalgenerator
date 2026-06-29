@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Settings, Loader2, CheckCircle } from "lucide-react";
+import { X, Settings, Loader2 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -295,17 +295,6 @@ export function CreateExamDialog({
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Informational Warning */}
-            <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 text-xs text-primary flex gap-2.5">
-              <CheckCircle className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
-              <p className="leading-relaxed">
-                <strong>Arsitektur 0 Rupiah Siap Bekerja:</strong> Sistem secara
-                otomatis memproduksi file statis JSON aman tanpa kunci jawaban
-                di server. Siswa akan mengunduh soal secara statis tanpa membuat
-                database TiDB Anda kewalahan.
-              </p>
             </div>
 
             {/* Submit / Cancel Buttons */}

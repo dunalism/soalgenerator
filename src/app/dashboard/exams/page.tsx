@@ -14,6 +14,7 @@ import useSWRInfinite from "swr/infinite";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { Assessment, AssessmentOption, ExamItem } from "@/lib/types";
+import { ExamsSkeleton } from "@/components/dashboard/exams/ExamsSkeleton";
 
 interface AssessmentsListResponse {
   success: boolean;
@@ -170,15 +171,8 @@ export default function ExamsDashboardPage() {
     );
   };
 
-  if (authLoading || examsLoading) {
-    return (
-      <div className="flex h-[70vh] flex-col items-center justify-center gap-3 bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-medium text-muted-foreground">
-          Memuat Sesi Ujian CBT...
-        </p>
-      </div>
-    );
+  if (authLoading || (examsLoading && !infiniteData)) {
+    return <ExamsSkeleton />;
   }
 
   if (examsError) {

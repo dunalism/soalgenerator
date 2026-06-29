@@ -19,6 +19,7 @@ import { AssessmentCard } from "@/components/dashboard/AssessmentCard";
 import { Assessment } from "@/lib/types";
 import useSWRInfinite from "swr/infinite";
 import { fetcher } from "@/lib/fetcher";
+import { AssessmentCardSkeleton } from "@/components/dashboard/AssessmentCardSkeleton";
 
 export default function BankSoalPage() {
   const router = useRouter();
@@ -266,14 +267,13 @@ export default function BankSoalPage() {
           )}
         </div>
       </div>
-
       {/* Grid of assessments */}
       {loading && assessments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-semibold text-muted-foreground">
-            Menyaring Paket Soal Anda...
-          </p>
+        /* SKELETON STATE: Membuka container grid dan merender 6 buah skeleton card tiruan */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-pulse">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <AssessmentCardSkeleton key={i} />
+          ))}
         </div>
       ) : assessments.length === 0 ? (
         <div className="border border-dashed rounded-xl py-16 px-4 text-center space-y-4 bg-muted/10">
@@ -307,6 +307,7 @@ export default function BankSoalPage() {
           )}
         </div>
       ) : (
+        /* DATA STATE: Tampilan asli ketika data sukses ter-fetch */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {assessments.map((assessment) => (
             <AssessmentCard

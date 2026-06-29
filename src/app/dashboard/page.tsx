@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
-  Loader2,
   Brain,
   Sparkles,
   Layers,
@@ -20,6 +19,7 @@ import { AssessmentCard } from "@/components/dashboard/AssessmentCard";
 import { Assessment, StatsData } from "@/lib/types";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 
 interface DashboardStatsResponse {
   success: boolean;
@@ -71,7 +71,6 @@ export default function DashboardPage() {
           });
 
           if (response.ok) {
-            // Optimistic update of local SWR cache
             if (data) {
               mutate(
                 {
@@ -87,7 +86,7 @@ export default function DashboardPage() {
                     ),
                   },
                 },
-                false, // don't refetch immediately
+                false,
               );
             }
             showAlert("Sukses", "Paket soal berhasil dihapus!");
@@ -107,16 +106,10 @@ export default function DashboardPage() {
   };
 
   if (authLoading || (isLoading && !data)) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-semibold text-muted-foreground">
-          Memuat Dashboard Anda...
-        </p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
+  // DATA STATE (RENDER ASLI)
   return (
     <div className="space-y-8 max-w-5xl mx-auto w-full">
       {/* Welcome & Greeting Section */}
@@ -270,7 +263,7 @@ export default function DashboardPage() {
               <AssessmentCard
                 key={assessment.id}
                 assessment={assessment}
-                debouncedSearch="" // No active keyword search on home dashboard
+                debouncedSearch=""
                 onDelete={handleDeleteAssessment}
               />
             ))}

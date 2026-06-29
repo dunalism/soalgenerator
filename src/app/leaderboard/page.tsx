@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 
 interface LeaderboardExam {
   id: string;
@@ -47,6 +48,7 @@ export default function LeaderboardListPage() {
   } = useSWR<LeaderboardExam[]>("/api/leaderboards", fetcher);
 
   const [search, setSearch] = useState("");
+  const router = useRouter();
 
   const filteredExams = exams?.filter(
     (exam) =>
@@ -71,11 +73,14 @@ export default function LeaderboardListPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Link href="/cbt" passHref>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <ArrowLeft className="size-4" /> Kembali
-                </Button>
-              </Link>
+              <Button
+                onClick={() => router.back()}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <ArrowLeft className="size-4" /> Kembali
+              </Button>
             </div>
             <h1 className="text-3xl font-bold tracking-tight font-heading mt-2 flex items-center gap-3">
               <Trophy className="size-8 text-amber-500 fill-amber-500/10" />
