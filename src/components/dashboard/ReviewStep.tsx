@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { QuestionCard } from "./QuestionCard";
 import {
   ArrowLeft,
   Save,
@@ -17,7 +16,8 @@ import { useCart, CartItem } from "@/lib/cart-context";
 import { downloadAsWord, openPrintLayout } from "@/lib/export-utils";
 import { Question } from "@/lib/types";
 import { useState } from "react";
-import { InlineQuestionEditor } from "./InlineQuestionEditor";
+import { InlineQuestionEditor } from "@/components/dashboard/InlineQuestionEditor";
+import { QuestionCard } from "@/components/dashboard/QuestionCard";
 
 interface ReviewStepProps {
   questions: Question[];
