@@ -15,6 +15,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { ExamAttemptItem } from "./types";
+import { formatDuration } from "@/lib/utils";
 
 interface ExamResultsTableProps {
   attempts: ExamAttemptItem[];
@@ -28,15 +29,6 @@ export function ExamResultsTable({
   onPeriksaEsai,
 }: ExamResultsTableProps) {
   // Format durasi pengerjaan siswa
-  const formatDuration = (
-    durationSeconds: number,
-    submittedAt: string | null,
-  ) => {
-    if (!submittedAt) return "-";
-    const minutes = Math.floor(durationSeconds / 60000);
-    const seconds = Math.floor((durationSeconds % 60000) / 1000);
-    return `${minutes}m ${seconds}d`;
-  };
 
   // Format tanggal display
   const formatDateDisplay = (dateStr: string) => {
@@ -98,10 +90,7 @@ export function ExamResultsTable({
                       : "-"}
                   </TableCell>
                   <TableCell className="text-xs">
-                    {formatDuration(
-                      attempt.durationSeconds,
-                      attempt.submittedAt,
-                    )}
+                    {formatDuration(attempt.durationSeconds)}
                   </TableCell>
                   <TableCell className="text-right">
                     <span

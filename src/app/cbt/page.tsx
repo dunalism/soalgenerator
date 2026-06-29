@@ -160,6 +160,14 @@ export default function CbtLoginPage() {
                   : "Mulai Ujian Sekarang"}
               </Button>
             </form>
+            <Button
+              onClick={() => router.push("/leaderboard")}
+              size="lg"
+              variant="ghost"
+              className="mt-2 w-full "
+            >
+              Lihat leaderboard
+            </Button>
           </CardContent>
         </Card>
 

@@ -134,6 +134,16 @@ export default function DashboardLayout({
             >
               Ujian
             </Link>
+            <Link
+              href="/leaderboard"
+              className={`px-2.5 py-1 text-xs sm:text-sm font-semibold rounded-md transition-colors ${
+                pathname === "/dashboard/exams"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Leaderboard
+            </Link>
           </nav>
         </div>
 

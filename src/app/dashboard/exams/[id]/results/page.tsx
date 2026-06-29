@@ -25,6 +25,7 @@ import {
   ExamResultsResponse,
   ItemAnalysisItem,
 } from "@/components/dashboard/results/types";
+import { formatDuration } from "@/lib/utils";
 
 export default function ExamResultsPage({
   params,
@@ -81,14 +82,6 @@ export default function ExamResultsPage({
   };
 
   // Format durasi pengerjaan siswa
-  const formatDuration = (startedAt: string, submittedAt: string | null) => {
-    if (!submittedAt) return "-";
-    const diff =
-      new Date(submittedAt).getTime() - new Date(startedAt).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    return `${minutes}m ${seconds}d`;
-  };
 
   // Ekspor CSV murni client-side
   const handleExportCSV = () => {
@@ -109,7 +102,7 @@ export default function ExamResultsPage({
       att.studentName,
       att.startedAt ? formatDateDisplay(att.startedAt) : "-",
       att.submittedAt ? formatDateDisplay(att.submittedAt) : "-",
-      formatDuration(att.startedAt, att.submittedAt),
+      formatDuration(att.durationSeconds),
       att.score !== null ? att.score : "Belum Dinilai",
       att.isGraded ? "Sudah Dinilai" : "Belum Dinilai",
     ]);
