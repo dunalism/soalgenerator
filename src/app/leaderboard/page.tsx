@@ -16,8 +16,8 @@ import {
   Calendar,
   Users,
   ArrowLeft,
-  BookOpen,
   Search,
+  BookOpenCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -169,7 +169,7 @@ export default function LeaderboardListPage() {
                           Jumlah Soal
                         </span>
                         <div className="font-semibold flex items-center gap-1.5">
-                          <BookOpen className="size-4 text-primary" />
+                          <BookOpenCheck className="size-4 text-primary" />
                           {exam.assessment?.questionCount || 0} Soal
                         </div>
                       </div>

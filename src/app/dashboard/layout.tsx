@@ -108,13 +108,13 @@ export default function DashboardLayout({
       >
         <div className="flex items-center gap-3 sm:gap-6">
           {/* LOGO APLIKASI */}
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-lg text-primary">
               <BookOpen className="h-6 w-6" />
             </div>
             <div>
               <h1 className="text-sm sm:text-lg font-bold tracking-tight leading-none md:leading-tight">
-                SoalGenerator
+                Desesmen
               </h1>
               <p className="text-[9px] sm:text-[10px] text-muted-foreground hidden sm:block">
                 Asesmen Praktis
@@ -181,7 +181,7 @@ export default function DashboardLayout({
                         <BookOpen className="h-5 w-5" />
                       </div>
                       <span className="font-bold tracking-tight text-base">
-                        SoalGenerator
+                        Desesmen
                       </span>
                     </SheetTitle>
                   </SheetHeader>

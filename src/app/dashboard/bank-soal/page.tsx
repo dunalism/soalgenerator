@@ -6,12 +6,12 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
   Loader2,
-  BookOpen,
   AlertCircle,
   ChevronRight,
   Search,
   X,
   Filter,
+  BookOpenCheck,
 } from "lucide-react";
 import { useDialog } from "@/components/ui/dialog-provider";
 import { Button } from "@/components/ui/button";
@@ -180,7 +180,7 @@ export default function BankSoalPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
         <div className="flex items-center gap-3">
           <div className="bg-primary/10 p-2.5 rounded-lg text-primary">
-            <BookOpen className="h-6 w-6" />
+            <BookOpenCheck className="h-6 w-6" />
           </div>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Bank Soal</h2>

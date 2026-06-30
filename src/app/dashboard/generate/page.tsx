@@ -242,7 +242,7 @@ export default function DashboardGeneratePage() {
           <p className="font-bold text-lg">{loadingText}</p>
           <p className="text-sm text-muted-foreground">
             Sistem sedang bekerja memproses materi dan merumuskan soal kustom di
-            database MySQL.
+            database.
           </p>
         </div>
       </div>

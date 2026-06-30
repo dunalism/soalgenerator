@@ -131,7 +131,7 @@ export default function LoginPage() {
               <p className="font-semibold text-base">Berhasil Masuk!</p>
               <p className="text-xs opacity-90">
                 Halo, {successUser.name || successUser.email}. Data Anda telah
-                tersinkronisasi ke database MySQL.
+                tersinkronisasi ke database.
               </p>
             </div>
           )}
