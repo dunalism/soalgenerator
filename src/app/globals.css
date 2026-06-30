@@ -298,42 +298,118 @@ body {
     0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(32px);
-  }
+/* ========================= */
+/* REVEAL BASE */
+/* ========================= */
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-hero {
-  animation: fadeUp 0.9s ease both;
-}
-
-.animate-title {
+[data-reveal] {
   opacity: 0;
-  animation: fadeUp 0.9s ease 0.2s forwards;
-}
-
-.animate-subtitle {
-  opacity: 0;
-  animation: fadeUp 0.9s ease 0.45s forwards;
-}
-
-.reveal {
-  opacity: 0;
-  transform: translateY(50px);
   transition:
-    opacity 0.8s ease,
-    transform 0.8s ease;
-  will-change: opacity, transform;
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
 }
 
-.reveal.show {
+[data-reveal].show {
   opacity: 1;
-  transform: translateY(0);
+}
+
+/* ========================= */
+/* UP */
+/* ========================= */
+
+.reveal-up {
+  transform: translateY(70px) scale(0.96);
+}
+
+.reveal-up.show {
+  transform: translateY(0) scale(1);
+}
+
+/* ========================= */
+/* DOWN */
+/* ========================= */
+
+.reveal-down {
+  transform: translateY(-70px) scale(0.96);
+}
+
+.reveal-down.show {
+  transform: none;
+}
+
+/* ========================= */
+/* LEFT */
+/* ========================= */
+
+.reveal-left {
+  transform: translateX(-90px);
+}
+
+.reveal-left.show {
+  transform: none;
+}
+
+/* ========================= */
+/* RIGHT */
+/* ========================= */
+
+.reveal-right {
+  transform: translateX(90px);
+}
+
+.reveal-right.show {
+  transform: none;
+}
+
+/* ========================= */
+/* ZOOM */
+/* ========================= */
+
+.reveal-zoom {
+  transform: scale(0.85);
+}
+
+.reveal-zoom.show {
+  transform: scale(1);
+}
+
+/* ========================= */
+/* ROTATE */
+/* ========================= */
+
+.reveal-rotate {
+  transform: rotate(-6deg) scale(0.9);
+}
+
+.reveal-rotate.show {
+  transform: none;
+}
+
+/* ========================= */
+/* STAGGER */
+/* ========================= */
+
+.delay-1 {
+  transition-delay: 0.1s;
+}
+
+.delay-2 {
+  transition-delay: 0.2s;
+}
+
+.delay-3 {
+  transition-delay: 0.3s;
+}
+
+.delay-4 {
+  transition-delay: 0.4s;
+}
+
+.delay-5 {
+  transition-delay: 0.5s;
+}
+
+.delay-6 {
+  transition-delay: 0.6s;
 }
