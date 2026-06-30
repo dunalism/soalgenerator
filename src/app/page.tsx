@@ -74,7 +74,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main className="flex-1 mt-[-100px]">
+      <main className="flex-1 -mt-11 md:mt-[-99px] ">
         {/* 1. HERO SECTION */}
         <section className="relative overflow-hidden reveal pt-24 pb-20 md:pt-32 md:pb-28 border-b">
           <div className="absolute  inset-0 bg-gradient-to-br from-primary/5 via-background to-background z-0" />
